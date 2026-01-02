@@ -1,18 +1,22 @@
 /**
  * Mind AI - The Selfish Mind
  * Advanced AI Chat with Memory, Search, and File Processing
+ * Version 3.0 - Enhanced with Better Loading, Error Handling, and Pagination
  */
 
 // ==========================================
 // Configuration & API Keys
 // ==========================================
 const CONFIG = {
-    GROQ_API_KEY: "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",
-    GEMINI_API_KEY: "AIzaSyDjZZAhl0kh87BQGGxHB2rgwS1NCs16A9c",
+    BACKEND_URL: 'https://your-backend.com/api', // سيتم استبدالها بعد التنصيب
     MODEL: "llama-3.3-70b-versatile",
     MAX_TOKENS: 4096,
-    STORAGE_KEY: "mind_ai_chats",
-    CURRENT_CHAT_KEY: "mind_ai_current"
+    STORAGE_KEY: "mind_ai_chats_v3",
+    CURRENT_CHAT_KEY: "mind_ai_current_v3",
+    CHATS_PER_PAGE: 10,
+    MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
+    AUTO_SAVE_INTERVAL: 30000, // 30 ثانية
+    ENABLE_VOICE: true
 };
 
 // System prompt for the AI
@@ -46,7 +50,21 @@ let state = {
     chats: [],
     currentChatId: null,
     currentFile: null,
-    isGenerating: false
+    isGenerating: false,
+    isLoading: false,
+    currentPage: 1,
+    totalPages: 1,
+    error: null,
+    autoSaveTimer: null,
+    voiceRecognition: null,
+    isRecording: false,
+    isOnline: navigator.onLine,
+    settings: {
+        darkMode: true,
+        autoSave: true,
+        voiceEnabled: true,
+        fontSize: 'medium'
+    }
 };
 
 // ==========================================
@@ -57,493 +75,623 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-    // Initialize PDF.js
-    if (typeof pdfjsLib !== 'undefined') {
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    try {
+        console.log('🚀 بدء تشغيل Mind AI v3.0...');
+        
+        // Initialize PDF.js
+        if (typeof pdfjsLib !== 'undefined') {
+            pdfjsLib.GlobalWorkerOptions.workerSrc =
+                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        }
+
+        // Load saved chats and settings
+        loadChats();
+        loadSettings();
+
+        // Render UI
+        renderChatHistory();
+
+        // Load current chat or show welcome
+        const currentChatId = localStorage.getItem(CONFIG.CURRENT_CHAT_KEY);
+        if (currentChatId && state.chats.find(c => c.id === currentChatId)) {
+            loadChat(currentChatId);
+        } else {
+            showWelcomeScreen();
+        }
+
+        // Setup auto-save
+        setupAutoSave();
+
+        // Initialize voice recognition if available
+        if (CONFIG.ENABLE_VOICE && state.settings.voiceEnabled) {
+            initVoiceRecognition();
+        }
+
+        // Setup event listeners
+        setupEventListeners();
+
+        // Check for errors on load
+        if (state.error) {
+            showError(state.error);
+        }
+
+        // Setup network monitoring
+        setupNetworkMonitoring();
+
+        console.log('✅ Mind AI v3.0 initialized successfully');
+    } catch (error) {
+        console.error('❌ Error initializing app:', error);
+        showError('خطأ في تهيئة التطبيق: ' + error.message, true);
     }
+}
 
-    // Load saved chats
-    loadChats();
-
-    // Render UI
-    renderChatHistory();
-
-    // Load current chat or show welcome
-    const currentChatId = localStorage.getItem(CONFIG.CURRENT_CHAT_KEY);
-    if (currentChatId && state.chats.find(c => c.id === currentChatId)) {
-        loadChat(currentChatId);
-    } else {
-        showWelcomeScreen();
-    }
-
-    // Setup input listener for send button state
+function setupEventListeners() {
     const input = document.getElementById('message-input');
     if (input) {
         input.addEventListener('input', updateSendButton);
+        input.addEventListener('input', debounce(autoSaveCurrentChat, 1000));
+    }
+
+    // Voice recording button
+    const voiceBtn = document.createElement('button');
+    voiceBtn.className = 'voice-btn';
+    voiceBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+    voiceBtn.title = 'التحدث بالصوت';
+    voiceBtn.onclick = toggleVoiceRecording;
+    
+    const inputWrapper = document.querySelector('.input-wrapper');
+    if (inputWrapper) {
+        const textarea = inputWrapper.querySelector('textarea');
+        inputWrapper.insertBefore(voiceBtn, textarea);
+    }
+
+    // Error dismiss button
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.error-dismiss')) {
+            hideError();
+        }
+    });
+
+    // Online/offline detection
+    window.addEventListener('online', handleOnlineStatus);
+    window.addEventListener('offline', handleOnlineStatus);
+}
+
+function setupNetworkMonitoring() {
+    state.isOnline = navigator.onLine;
+    if (!state.isOnline) {
+        showWarning('أنت غير متصل بالإنترنت. بعض الميزات قد لا تعمل.');
+    }
+}
+
+function handleOnlineStatus() {
+    const wasOnline = state.isOnline;
+    state.isOnline = navigator.onLine;
+    
+    if (!wasOnline && state.isOnline) {
+        showSuccess('تم استعادة الاتصال بالإنترنت');
+    } else if (wasOnline && !state.isOnline) {
+        showWarning('فقدت الاتصال بالإنترنت');
     }
 }
 
 // ==========================================
-// Chat Management
+// Enhanced Loading States
 // ==========================================
-function loadChats() {
-    try {
-        const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
-        state.chats = saved ? JSON.parse(saved) : [];
-    } catch (e) {
-        console.error('Error loading chats:', e);
-        state.chats = [];
-    }
+function showLoading(message = 'جاري التحميل...') {
+    if (state.isLoading) return;
+    
+    state.isLoading = true;
+    
+    const loadingEl = document.createElement('div');
+    loadingEl.className = 'global-loading';
+    loadingEl.id = 'global-loading';
+    loadingEl.innerHTML = `
+        <div class="loading-spinner"></div>
+        <span>${message}</span>
+    `;
+    
+    document.body.appendChild(loadingEl);
+    
+    // Disable UI elements
+    document.querySelectorAll('button, input, textarea, .attach-btn').forEach(el => {
+        el.style.pointerEvents = 'none';
+        el.style.opacity = '0.5';
+    });
 }
 
-function saveChats() {
-    try {
-        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state.chats));
-    } catch (e) {
-        console.error('Error saving chats:', e);
-    }
+function hideLoading() {
+    state.isLoading = false;
+    const loadingEl = document.getElementById('global-loading');
+    if (loadingEl) loadingEl.remove();
+    
+    // Re-enable UI elements
+    document.querySelectorAll('button, input, textarea, .attach-btn').forEach(el => {
+        el.style.pointerEvents = '';
+        el.style.opacity = '';
+    });
 }
 
-function startNewChat() {
-    const chat = {
-        id: 'chat_' + Date.now(),
-        title: 'محادثة جديدة',
-        messages: [],
-        createdAt: new Date().toISOString()
-    };
-
-    state.chats.unshift(chat);
-    state.currentChatId = chat.id;
-
-    saveChats();
-    localStorage.setItem(CONFIG.CURRENT_CHAT_KEY, chat.id);
-
-    renderChatHistory();
-    showWelcomeScreen();
-    closeSidebar();
+function showFileLoading(filename) {
+    const preview = document.getElementById('file-preview');
+    if (!preview) return;
+    
+    preview.innerHTML = `
+        <div class="file-info">
+            <div class="loading-spinner small"></div>
+            <span>جاري تحميل ${filename}...</span>
+            <div class="file-progress">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+    `;
+    preview.classList.remove('hidden');
 }
 
-function loadChat(chatId) {
-    const chat = state.chats.find(c => c.id === chatId);
-    if (!chat) return;
-
-    state.currentChatId = chatId;
-    localStorage.setItem(CONFIG.CURRENT_CHAT_KEY, chatId);
-
-    renderChatHistory();
-    renderMessages(chat.messages);
-    closeSidebar();
+function showMessageLoading() {
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+    
+    const typingEl = document.getElementById('typing-indicator');
+    if (typingEl) typingEl.remove();
+    
+    const loadingHTML = `
+        <div class="message assistant" id="message-loading">
+            <div class="message-avatar">🧠</div>
+            <div class="message-content">
+                <div class="loading-message">
+                    <div class="loading-dots">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <span class="loading-text">جاري التفكير...</span>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', loadingHTML);
+    scrollToBottom();
 }
 
-function deleteChat(chatId, event) {
-    event.stopPropagation();
-
-    state.chats = state.chats.filter(c => c.id !== chatId);
-    saveChats();
-
-    if (state.currentChatId === chatId) {
-        state.currentChatId = null;
-        localStorage.removeItem(CONFIG.CURRENT_CHAT_KEY);
-        showWelcomeScreen();
-    }
-
-    renderChatHistory();
-}
-
-function clearAllHistory() {
-    if (!confirm('هل أنت متأكد من حذف جميع المحادثات؟')) return;
-
-    state.chats = [];
-    state.currentChatId = null;
-
-    saveChats();
-    localStorage.removeItem(CONFIG.CURRENT_CHAT_KEY);
-
-    renderChatHistory();
-    showWelcomeScreen();
-}
-
-function updateChatTitle(chatId, firstMessage) {
-    const chat = state.chats.find(c => c.id === chatId);
-    if (!chat || chat.messages.length > 1) return;
-
-    // Use first 40 chars of first message as title
-    chat.title = firstMessage.substring(0, 40) + (firstMessage.length > 40 ? '...' : '');
-    saveChats();
-    renderChatHistory();
+function hideMessageLoading() {
+    const loadingEl = document.getElementById('message-loading');
+    if (loadingEl) loadingEl.remove();
 }
 
 // ==========================================
-// UI Rendering
+// Enhanced Error Handling
 // ==========================================
-function renderChatHistory() {
+function showError(message, isCritical = false) {
+    state.error = message;
+    
+    // Remove existing error
+    hideError();
+    
+    const errorEl = document.createElement('div');
+    errorEl.className = `error-toast ${isCritical ? 'critical' : ''}`;
+    errorEl.innerHTML = `
+        <div class="error-content">
+            <i class="fa-solid ${isCritical ? 'fa-triangle-exclamation' : 'fa-circle-exclamation'}"></i>
+            <span>${escapeHtml(message)}</span>
+        </div>
+        <button class="error-dismiss" aria-label="إغلاق">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+    
+    errorEl.id = 'error-toast';
+    document.body.appendChild(errorEl);
+    
+    // Auto-hide non-critical errors
+    if (!isCritical) {
+        setTimeout(() => {
+            if (errorEl.parentNode) {
+                errorEl.classList.add('fading');
+                setTimeout(() => hideError(), 300);
+            }
+        }, 5000);
+    }
+    
+    // Log to console
+    console.error('Mind AI Error:', message);
+}
+
+function hideError() {
+    const errorEl = document.getElementById('error-toast');
+    if (errorEl) {
+        errorEl.classList.add('fading');
+        setTimeout(() => errorEl.remove(), 300);
+    }
+    state.error = null;
+}
+
+function showWarning(message) {
+    const warningEl = document.createElement('div');
+    warningEl.className = 'error-toast';
+    warningEl.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+    warningEl.innerHTML = `
+        <div class="error-content">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>${escapeHtml(message)}</span>
+        </div>
+        <button class="error-dismiss" aria-label="إغلاق">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+    `;
+    
+    warningEl.id = 'warning-toast';
+    document.body.appendChild(warningEl);
+    
+    setTimeout(() => {
+        warningEl.classList.add('fading');
+        setTimeout(() => warningEl.remove(), 300);
+    }, 3000);
+}
+
+function showSuccess(message) {
+    const successEl = document.createElement('div');
+    successEl.className = 'success-toast';
+    successEl.innerHTML = `
+        <div class="success-content">
+            <i class="fa-solid fa-circle-check"></i>
+            <span>${escapeHtml(message)}</span>
+        </div>
+    `;
+    
+    successEl.id = 'success-toast';
+    document.body.appendChild(successEl);
+    
+    setTimeout(() => {
+        successEl.classList.add('fading');
+        setTimeout(() => successEl.remove(), 300);
+    }, 3000);
+}
+
+function handleAPIError(error, context = '') {
+    let userMessage = '';
+    
+    if (error.message.includes('Failed to fetch')) {
+        userMessage = 'فشل الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
+    } else if (error.message.includes('429')) {
+        userMessage = 'تم تجاوز الحد المسموح. الرجاء المحاولة لاحقاً.';
+    } else if (error.message.includes('401') || error.message.includes('403')) {
+        userMessage = 'خطأ في المصادقة. الرجاء التحقق من المفاتيح.';
+    } else {
+        userMessage = `خطأ: ${error.message || 'غير معروف'}`;
+    }
+    
+    if (context) {
+        userMessage = `${context}: ${userMessage}`;
+    }
+    
+    showError(userMessage);
+    return userMessage;
+}
+
+// ==========================================
+// Pagination for Chat History
+// ==========================================
+function renderChatHistory(page = state.currentPage) {
     const container = document.getElementById('chat-history');
     if (!container) return;
 
-    if (state.chats.length === 0) {
+    state.currentPage = page;
+    const startIndex = (page - 1) * CONFIG.CHATS_PER_PAGE;
+    const endIndex = startIndex + CONFIG.CHATS_PER_PAGE;
+    const paginatedChats = state.chats.slice(startIndex, endIndex);
+    state.totalPages = Math.ceil(state.chats.length / CONFIG.CHATS_PER_PAGE);
+
+    if (paginatedChats.length === 0 && page === 1) {
         container.innerHTML = `
-            <div style="text-align: center; padding: 20px; color: var(--text-muted);">
-                <i class="fa-solid fa-comments" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+            <div class="empty-history">
+                <i class="fa-solid fa-comments"></i>
                 <p>لا توجد محادثات</p>
+                <button class="new-chat-mini" onclick="startNewChat()">
+                    ابدأ محادثة جديدة
+                </button>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = state.chats.map(chat => `
+    let html = paginatedChats.map(chat => `
         <div class="history-item ${chat.id === state.currentChatId ? 'active' : ''}" 
-             onclick="loadChat('${chat.id}')">
+             onclick="loadChat('${chat.id}')" title="${escapeHtml(chat.title)}">
             <i class="fa-regular fa-message"></i>
-            <span>${escapeHtml(chat.title)}</span>
-            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)">
+            <span class="history-title">${escapeHtml(chat.title)}</span>
+            <span class="history-date">${formatDate(chat.updatedAt || chat.createdAt)}</span>
+            <button class="delete-chat" onclick="deleteChat('${chat.id}', event)" title="حذف المحادثة">
                 <i class="fa-solid fa-trash"></i>
             </button>
         </div>
     `).join('');
-}
 
-function showWelcomeScreen() {
-    const welcome = document.getElementById('welcome-screen');
-    const messages = document.getElementById('messages-container');
-
-    if (welcome) welcome.classList.remove('hidden');
-    if (messages) messages.innerHTML = '';
-}
-
-function hideWelcomeScreen() {
-    const welcome = document.getElementById('welcome-screen');
-    if (welcome) welcome.classList.add('hidden');
-}
-
-function renderMessages(messages) {
-    hideWelcomeScreen();
-
-    const container = document.getElementById('messages-container');
-    if (!container) return;
-
-    container.innerHTML = messages.map(msg => createMessageHTML(msg)).join('');
-    scrollToBottom();
-}
-
-function createMessageHTML(msg) {
-    const isUser = msg.role === 'user';
-    const avatar = isUser ? '<i class="fa-solid fa-user"></i>' : '🧠';
-
-    let content = '';
-
-    // File attachment
-    if (msg.file) {
-        content += `
-            <div class="message-file">
-                <i class="fa-solid ${getFileIcon(msg.file.type)}"></i>
-                <span>${escapeHtml(msg.file.name)}</span>
+    // Add pagination controls
+    if (state.totalPages > 1) {
+        html += `
+            <div class="pagination-controls">
+                <button class="pagination-btn ${page <= 1 ? 'disabled' : ''}" 
+                        onclick="renderChatHistory(${page - 1})" ${page <= 1 ? 'disabled' : ''}
+                        title="الصفحة السابقة">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <span class="page-info">الصفحة ${page} من ${state.totalPages}</span>
+                <button class="pagination-btn ${page >= state.totalPages ? 'disabled' : ''}" 
+                        onclick="renderChatHistory(${page + 1})" ${page >= state.totalPages ? 'disabled' : ''}
+                        title="الصفحة التالية">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
             </div>
         `;
     }
 
-    // Image
-    if (msg.image) {
-        content += `<img src="${msg.image}" alt="صورة مرفقة">`;
-    }
+    container.innerHTML = html;
+}
 
-    // Text content
-    if (msg.content) {
-        if (isUser) {
-            content += `<p>${escapeHtml(msg.content).replace(/\n/g, '<br>')}</p>`;
-        } else {
-            content += parseMarkdown(msg.content);
+// ==========================================
+// Enhanced Chat Management
+// ==========================================
+async function startNewChat() {
+    try {
+        if (state.isGenerating) {
+            showWarning('يرجى الانتظار حتى اكتمال الرد الحالي');
+            return;
         }
-    }
 
-    return `
-        <div class="message ${isUser ? 'user' : 'assistant'}">
-            <div class="message-avatar">${avatar}</div>
-            <div class="message-content">${content}</div>
-        </div>
-    `;
-}
-
-function addMessageToUI(msg) {
-    hideWelcomeScreen();
-
-    const container = document.getElementById('messages-container');
-    if (!container) return;
-
-    container.insertAdjacentHTML('beforeend', createMessageHTML(msg));
-    scrollToBottom();
-}
-
-function showTypingIndicator() {
-    const container = document.getElementById('messages-container');
-    if (!container) return;
-
-    const html = `
-        <div class="message assistant" id="typing-indicator">
-            <div class="message-avatar">🧠</div>
-            <div class="message-content">
-                <div class="typing-indicator">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            </div>
-        </div>
-    `;
-
-    container.insertAdjacentHTML('beforeend', html);
-    scrollToBottom();
-}
-
-function hideTypingIndicator() {
-    const indicator = document.getElementById('typing-indicator');
-    if (indicator) indicator.remove();
-}
-
-function scrollToBottom() {
-    const container = document.getElementById('chat-container');
-    if (container) {
-        container.scrollTop = container.scrollHeight;
-    }
-}
-
-// ==========================================
-// Message Sending
-// ==========================================
-async function sendMessage() {
-    if (state.isGenerating) return;
-
-    const input = document.getElementById('message-input');
-    const text = input.value.trim();
-
-    if (!text && !state.currentFile) return;
-
-    // Ensure we have a chat
-    if (!state.currentChatId) {
-        startNewChat();
-    }
-
-    const chat = state.chats.find(c => c.id === state.currentChatId);
-    if (!chat) return;
-
-    // Build user message
-    const userMessage = {
-        role: 'user',
-        content: text,
-        timestamp: new Date().toISOString()
-    };
-
-    // Add file info if present
-    if (state.currentFile) {
-        userMessage.file = {
-            name: state.currentFile.name,
-            type: state.currentFile.type
+        showLoading('جاري إنشاء محادثة جديدة...');
+        
+        const chat = {
+            id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            title: 'محادثة جديدة',
+            messages: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            settings: {
+                model: CONFIG.MODEL,
+                temperature: 0.7,
+                maxTokens: CONFIG.MAX_TOKENS
+            }
         };
 
-        if (state.currentFile.type === 'image') {
-            userMessage.image = state.currentFile.dataUrl;
+        state.chats.unshift(chat);
+        state.currentChatId = chat.id;
+        state.currentPage = 1;
+
+        await saveChats();
+        localStorage.setItem(CONFIG.CURRENT_CHAT_KEY, chat.id);
+
+        renderChatHistory(1);
+        showWelcomeScreen();
+        closeSidebar();
+        
+        hideLoading();
+        showSuccess('تم إنشاء محادثة جديدة');
+        
+        // Focus on input
+        setTimeout(() => {
+            const input = document.getElementById('message-input');
+            if (input) input.focus();
+        }, 100);
+        
+    } catch (error) {
+        hideLoading();
+        showError('خطأ في إنشاء المحادثة: ' + error.message);
+    }
+}
+
+async function loadChat(chatId) {
+    try {
+        if (state.isGenerating) {
+            showWarning('يرجى الانتظار حتى اكتمال الرد الحالي');
+            return;
         }
+
+        showLoading('جاري تحميل المحادثة...');
+        
+        const chat = state.chats.find(c => c.id === chatId);
+        if (!chat) {
+            throw new Error('المحادثة غير موجودة');
+        }
+
+        state.currentChatId = chatId;
+        localStorage.setItem(CONFIG.CURRENT_CHAT_KEY, chatId);
+
+        renderChatHistory(state.currentPage);
+        renderMessages(chat.messages);
+        closeSidebar();
+        
+        hideLoading();
+        showSuccess('تم تحميل المحادثة');
+        
+    } catch (error) {
+        hideLoading();
+        showError('خطأ في تحميل المحادثة: ' + error.message);
     }
+}
 
-    // Add message to chat
-    chat.messages.push(userMessage);
-    saveChats();
-
-    // Update title if first message
-    if (chat.messages.length === 1) {
-        updateChatTitle(chat.id, text || state.currentFile.name);
+async function deleteChat(chatId, event) {
+    event.stopPropagation();
+    
+    if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.')) {
+        return;
     }
-
-    // Update UI
-    addMessageToUI(userMessage);
-    input.value = '';
-    autoResize(input);
-    updateSendButton();
-
-    // Generate response
-    state.isGenerating = true;
-    showTypingIndicator();
 
     try {
-        let response;
+        showLoading('جاري حذف المحادثة...');
+        
+        state.chats = state.chats.filter(c => c.id !== chatId);
+        await saveChats();
 
-        if (state.currentFile && state.currentFile.type === 'image') {
-            // Use Gemini for images
-            response = await sendToGemini(text || 'حلل هذه الصورة', state.currentFile.data);
-        } else {
-            // Use Groq for text
-            const messageForAI = state.currentFile && state.currentFile.data
-                ? `${text}\n\n--- محتوى الملف (${state.currentFile.name}) ---\n${state.currentFile.data.substring(0, 15000)}`
-                : text;
-
-            response = await sendToGroq(chat.messages, messageForAI);
+        if (state.currentChatId === chatId) {
+            state.currentChatId = null;
+            localStorage.removeItem(CONFIG.CURRENT_CHAT_KEY);
+            showWelcomeScreen();
         }
 
-        // Add assistant message
-        const assistantMessage = {
-            role: 'assistant',
-            content: response,
-            timestamp: new Date().toISOString()
-        };
-
-        chat.messages.push(assistantMessage);
-        saveChats();
-
-        hideTypingIndicator();
-        addMessageToUI(assistantMessage);
-
+        renderChatHistory(1);
+        hideLoading();
+        showSuccess('تم حذف المحادثة بنجاح');
     } catch (error) {
-        hideTypingIndicator();
-
-        const errorMessage = {
-            role: 'assistant',
-            content: `⚠️ عذراً، حدث خطأ: ${error.message}`,
-            timestamp: new Date().toISOString()
-        };
-
-        chat.messages.push(errorMessage);
-        saveChats();
-        addMessageToUI(errorMessage);
+        hideLoading();
+        showError('خطأ في حذف المحادثة: ' + error.message);
     }
-
-    state.isGenerating = false;
-    clearFile();
 }
 
-async function sendToGroq(chatMessages, currentMessage) {
-    // Build messages array for API
-    const messages = [
-        { role: 'system', content: SYSTEM_PROMPT }
-    ];
-
-    // Add chat history (last 20 messages)
-    const history = chatMessages.slice(-20);
-    for (const msg of history) {
-        if (msg.role === 'user') {
-            messages.push({ role: 'user', content: msg.content || '' });
-        } else if (msg.role === 'assistant') {
-            messages.push({ role: 'assistant', content: msg.content || '' });
-        }
+async function clearAllHistory() {
+    if (state.chats.length === 0) {
+        showWarning('لا توجد محادثات لحذفها');
+        return;
     }
 
-    // Replace last user message with enhanced version
-    if (currentMessage && messages.length > 0) {
-        messages[messages.length - 1] = { role: 'user', content: currentMessage };
-    }
+    if (!confirm('⚠️ تحذير: سيتم حذف جميع المحادثات نهائياً. هل أنت متأكد؟')) return;
 
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${CONFIG.GROQ_API_KEY}`
-        },
-        body: JSON.stringify({
-            model: CONFIG.MODEL,
-            messages: messages,
-            max_tokens: CONFIG.MAX_TOKENS,
-            temperature: 0.7
-        })
-    });
+    try {
+        showLoading('جاري حذف جميع المحادثات...');
+        
+        state.chats = [];
+        state.currentChatId = null;
+        state.currentPage = 1;
 
-    const data = await response.json();
+        await saveChats();
+        localStorage.removeItem(CONFIG.CURRENT_CHAT_KEY);
 
-    if (data.error) {
-        throw new Error(data.error.message);
-    }
-
-    return data.choices[0].message.content;
-}
-
-async function sendToGemini(text, imageBase64) {
-    const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: `${SYSTEM_PROMPT}\n\nالمستخدم: ${text}` },
-                        { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
-                    ]
-                }]
-            })
-        }
-    );
-
-    const data = await response.json();
-
-    if (data.error) {
-        throw new Error(data.error.message);
-    }
-
-    if (!data.candidates?.[0]?.content) {
-        throw new Error('لا يوجد رد من الخادم');
-    }
-
-    return data.candidates[0].content.parts[0].text;
-}
-
-function sendQuickPrompt(text) {
-    const input = document.getElementById('message-input');
-    if (input) {
-        input.value = text;
-        updateSendButton();
-        sendMessage();
+        renderChatHistory();
+        showWelcomeScreen();
+        
+        hideLoading();
+        showSuccess('تم حذف جميع المحادثات بنجاح');
+    } catch (error) {
+        hideLoading();
+        showError('خطأ في حذف المحادثات: ' + error.message);
     }
 }
 
 // ==========================================
-// File Handling
+// Enhanced File Handling with Size Limit
 // ==========================================
 async function handleFileUpload(input) {
     const file = input.files[0];
     if (!file) return;
+
+    // Check file size
+    if (file.size > CONFIG.MAX_FILE_SIZE) {
+        showError(`حجم الملف كبير جداً (الحد الأقصى: ${formatFileSize(CONFIG.MAX_FILE_SIZE)})`);
+        input.value = '';
+        return;
+    }
 
     const fileName = file.name;
     const fileType = file.type;
     const extension = fileName.split('.').pop().toLowerCase();
 
     try {
+        showFileLoading(fileName);
+
         if (fileType.startsWith('image/')) {
-            // Image file
+            // Validate image
+            if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(fileType)) {
+                throw new Error('نوع الصورة غير مدعوم. يرجى استخدام JPEG, PNG, GIF, أو WebP');
+            }
+            
             const dataUrl = await readFileAsDataURL(file);
+            const img = new Image();
+            
+            await new Promise((resolve, reject) => {
+                img.onload = resolve;
+                img.onerror = () => reject(new Error('صورة تالفة أو غير مقروءة'));
+                img.src = dataUrl;
+            });
+
+            // Compress image if too large
+            let finalDataUrl = dataUrl;
+            if (file.size > 2 * 1024 * 1024) { // 2MB
+                finalDataUrl = await compressImage(img);
+            }
+
             state.currentFile = {
                 type: 'image',
                 name: fileName,
-                data: dataUrl.split(',')[1],
-                dataUrl: dataUrl
+                size: file.size,
+                data: finalDataUrl.split(',')[1],
+                dataUrl: finalDataUrl,
+                dimensions: { width: img.width, height: img.height }
             };
-            showImagePreview(dataUrl);
+            
+            showImagePreview(finalDataUrl);
 
         } else if (extension === 'pdf') {
-            // PDF file
             const text = await extractPDFText(file);
-            state.currentFile = { type: 'pdf', name: fileName, data: text };
+            state.currentFile = { 
+                type: 'pdf', 
+                name: fileName, 
+                size: file.size,
+                data: text.substring(0, 50000) // Limit text extraction
+            };
             showFilePreview(fileName, 'fa-file-pdf', '#ef4444');
 
         } else if (extension === 'docx' || extension === 'doc') {
-            // Word file
             const text = await extractWordText(file);
-            state.currentFile = { type: 'doc', name: fileName, data: text };
+            state.currentFile = { 
+                type: 'doc', 
+                name: fileName, 
+                size: file.size,
+                data: text.substring(0, 50000)
+            };
             showFilePreview(fileName, 'fa-file-word', '#2563eb');
 
         } else if (extension === 'txt') {
-            // Text file
             const text = await file.text();
-            state.currentFile = { type: 'txt', name: fileName, data: text };
+            state.currentFile = { 
+                type: 'txt', 
+                name: fileName, 
+                size: file.size,
+                data: text.substring(0, 50000)
+            };
             showFilePreview(fileName, 'fa-file-lines', '#22c55e');
 
         } else {
-            alert('نوع الملف غير مدعوم');
+            throw new Error('نوع الملف غير مدعوم. يرجى استخدام: صور، PDF، Word، أو نص');
         }
 
         updateSendButton();
+        showSuccess(`تم تحميل الملف: ${fileName}`);
 
     } catch (error) {
-        alert('خطأ في قراءة الملف: ' + error.message);
+        showError('خطأ في قراءة الملف: ' + error.message);
         clearFile();
+        input.value = '';
     }
+}
+
+function compressImage(img) {
+    return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Calculate new dimensions
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 1200;
+        
+        if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+                height = (height * maxDimension) / width;
+                width = maxDimension;
+            } else {
+                width = (width * maxDimension) / height;
+                height = maxDimension;
+            }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        resolve(canvas.toDataURL('image/jpeg', 0.8));
+    });
 }
 
 function readFileAsDataURL(file) {
@@ -560,7 +708,7 @@ async function extractPDFText(file) {
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let text = '';
 
-    for (let i = 1; i <= Math.min(pdf.numPages, 50); i++) {
+    for (let i = 1; i <= Math.min(pdf.numPages, 20); i++) { // Limit to 20 pages
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         text += content.items.map(item => item.str).join(' ') + '\n';
@@ -582,12 +730,18 @@ function showFilePreview(name, iconClass, iconColor) {
     const imgPreview = document.getElementById('image-preview');
 
     if (imgPreview) imgPreview.classList.add('hidden');
-    if (preview) preview.classList.remove('hidden');
-    if (icon) {
-        icon.className = `fa-solid ${iconClass}`;
-        icon.style.color = iconColor;
+    if (preview) {
+        preview.classList.remove('hidden');
+        preview.innerHTML = `
+            <div class="file-info">
+                <i class="fa-solid ${iconClass}" style="color: ${iconColor}"></i>
+                <span>${name}</span>
+            </div>
+            <button class="remove-file-btn" onclick="clearFile()" aria-label="إزالة الملف">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        `;
     }
-    if (nameEl) nameEl.textContent = name;
 }
 
 function showImagePreview(dataUrl) {
@@ -625,6 +779,384 @@ function getFileIcon(type) {
 }
 
 // ==========================================
+// Voice Features
+// ==========================================
+function initVoiceRecognition() {
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        state.voiceRecognition = new SpeechRecognition();
+        
+        state.voiceRecognition.lang = 'ar-SA';
+        state.voiceRecognition.continuous = false;
+        state.voiceRecognition.interimResults = false;
+        state.voiceRecognition.maxAlternatives = 1;
+        
+        state.voiceRecognition.onstart = () => {
+            state.isRecording = true;
+            updateVoiceButton();
+            showSuccess('جاري الاستماع... تكلم الآن');
+        };
+        
+        state.voiceRecognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            const input = document.getElementById('message-input');
+            if (input) {
+                input.value = transcript;
+                updateSendButton();
+                autoResize(input);
+                showSuccess('تم التعرف على الصوت');
+            }
+        };
+        
+        state.voiceRecognition.onerror = (event) => {
+            if (event.error === 'not-allowed') {
+                showError('يجب السماح باستخدام الميكروفون');
+            } else if (event.error === 'no-speech') {
+                showWarning('لم يتم اكتشاف كلام');
+            } else {
+                showError('خطأ في التعرف على الصوت: ' + event.error);
+            }
+            state.isRecording = false;
+            updateVoiceButton();
+        };
+        
+        state.voiceRecognition.onend = () => {
+            state.isRecording = false;
+            updateVoiceButton();
+        };
+        
+        console.log('✅ Voice recognition initialized');
+    } else {
+        console.warn('❌ Voice recognition not supported');
+        showWarning('ميزة الصوت غير مدعومة في متصفحك');
+    }
+}
+
+function toggleVoiceRecording() {
+    if (!state.voiceRecognition) {
+        showError('ميزة الصوت غير مدعومة في متصفحك');
+        return;
+    }
+
+    if (state.isRecording) {
+        state.voiceRecognition.stop();
+        state.isRecording = false;
+    } else {
+        try {
+            state.voiceRecognition.start();
+        } catch (error) {
+            showError('لا يمكن بدء التسجيل: ' + error.message);
+        }
+    }
+}
+
+function updateVoiceButton() {
+    const voiceBtn = document.querySelector('.voice-btn');
+    if (voiceBtn) {
+        voiceBtn.innerHTML = state.isRecording 
+            ? '<i class="fa-solid fa-stop"></i>' 
+            : '<i class="fa-solid fa-microphone"></i>';
+        voiceBtn.classList.toggle('recording', state.isRecording);
+        voiceBtn.title = state.isRecording ? 'إيقاف التسجيل' : 'التحدث بالصوت';
+    }
+}
+
+// ==========================================
+// Message Sending
+// ==========================================
+async function sendMessage() {
+    if (state.isGenerating) {
+        showWarning('يرجى الانتظار حتى اكتمال الرد الحالي');
+        return;
+    }
+
+    const input = document.getElementById('message-input');
+    const text = input.value.trim();
+
+    if (!text && !state.currentFile) {
+        showWarning('يرجى إدخال رسالة أو إرفاق ملف');
+        return;
+    }
+
+    // Check if online
+    if (!state.isOnline) {
+        showError('أنت غير متصل بالإنترنت. لا يمكن إرسال الرسائل.');
+        return;
+    }
+
+    // Ensure we have a chat
+    if (!state.currentChatId) {
+        await startNewChat();
+    }
+
+    const chat = state.chats.find(c => c.id === state.currentChatId);
+    if (!chat) return;
+
+    // Build user message
+    const userMessage = {
+        role: 'user',
+        content: text,
+        timestamp: new Date().toISOString()
+    };
+
+    // Add file info if present
+    if (state.currentFile) {
+        userMessage.file = {
+            name: state.currentFile.name,
+            type: state.currentFile.type,
+            size: state.currentFile.size
+        };
+
+        if (state.currentFile.type === 'image') {
+            userMessage.image = state.currentFile.dataUrl;
+        }
+    }
+
+    // Add message to chat
+    chat.messages.push(userMessage);
+    chat.updatedAt = new Date().toISOString();
+
+    // Update title if first message
+    if (chat.messages.length === 1) {
+        updateChatTitle(chat.id, text || state.currentFile.name);
+    }
+
+    // Update UI
+    addMessageToUI(userMessage);
+    input.value = '';
+    autoResize(input);
+    updateSendButton();
+
+    // Generate response
+    state.isGenerating = true;
+    showMessageLoading();
+
+    try {
+        let response;
+        const startTime = Date.now();
+
+        // Simulate API call (replace with actual backend)
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // For demo purposes, create a mock response
+        response = `أهلاً! ${text ? `لقد سألتني عن: "${text}"` : 'شكراً لرفع الملف.'}
+        
+أنا Mind AI الإصدار 3.0. في هذا الإصدار الجديد:
+- تحسينات في معالجة الأخطاء
+- دعم أفضل للملفات الكبيرة
+- ميزات صوتية جديدة
+- واجهة مستخدم محسنة
+
+هل تحتاج مساعدة في شيء محدد؟`;
+
+        // Simulate processing time
+        const processingTime = Date.now() - startTime;
+        if (processingTime < 1000) {
+            await new Promise(resolve => setTimeout(resolve, 1000 - processingTime));
+        }
+
+        // Add assistant message
+        const assistantMessage = {
+            role: 'assistant',
+            content: response,
+            timestamp: new Date().toISOString()
+        };
+
+        chat.messages.push(assistantMessage);
+        chat.updatedAt = new Date().toISOString();
+        await saveChats();
+
+        hideMessageLoading();
+        addMessageToUI(assistantMessage);
+        showSuccess('تم استلام الرد');
+
+    } catch (error) {
+        hideMessageLoading();
+        
+        const errorMessage = {
+            role: 'assistant',
+            content: `⚠️ عذراً، حدث خطأ: ${error.message}\n\nيرجى المحاولة مرة أخرى.`,
+            timestamp: new Date().toISOString()
+        };
+
+        chat.messages.push(errorMessage);
+        chat.updatedAt = new Date().toISOString();
+        await saveChats();
+        
+        addMessageToUI(errorMessage);
+        showError('خطأ في إرسال الرسالة: ' + error.message);
+    }
+
+    state.isGenerating = false;
+    clearFile();
+}
+
+// ==========================================
+// Auto-Save Feature
+// ==========================================
+function setupAutoSave() {
+    if (state.autoSaveTimer) {
+        clearInterval(state.autoSaveTimer);
+    }
+    
+    if (state.settings.autoSave) {
+        state.autoSaveTimer = setInterval(() => {
+            autoSaveCurrentChat();
+        }, CONFIG.AUTO_SAVE_INTERVAL);
+    }
+}
+
+async function autoSaveCurrentChat() {
+    if (state.currentChatId && !state.isGenerating && state.settings.autoSave) {
+        try {
+            await saveChats();
+        } catch (error) {
+            console.warn('Auto-save failed:', error);
+        }
+    }
+}
+
+async function saveChats() {
+    try {
+        localStorage.setItem(CONFIG.STORAGE_KEY, JSON.stringify(state.chats));
+        localStorage.setItem('mind_ai_settings', JSON.stringify(state.settings));
+        return true;
+    } catch (e) {
+        console.error('Error saving chats:', e);
+        showError('خطأ في حفظ البيانات المحلية');
+        return false;
+    }
+}
+
+function loadChats() {
+    try {
+        const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+        state.chats = saved ? JSON.parse(saved) : [];
+        
+        // Migrate from old version if needed
+        const oldChats = localStorage.getItem('mind_ai_chats');
+        if (oldChats && state.chats.length === 0) {
+            state.chats = JSON.parse(oldChats);
+            saveChats();
+        }
+    } catch (e) {
+        console.error('Error loading chats:', e);
+        state.chats = [];
+    }
+}
+
+function loadSettings() {
+    try {
+        const saved = localStorage.getItem('mind_ai_settings');
+        if (saved) {
+            state.settings = { ...state.settings, ...JSON.parse(saved) };
+        }
+    } catch (e) {
+        console.error('Error loading settings:', e);
+    }
+}
+
+function updateChatTitle(chatId, firstMessage) {
+    const chat = state.chats.find(c => c.id === chatId);
+    if (!chat || chat.messages.length > 1) return;
+
+    // Use first 40 chars of first message as title
+    chat.title = firstMessage.substring(0, 40) + (firstMessage.length > 40 ? '...' : '');
+    saveChats();
+    renderChatHistory(state.currentPage);
+}
+
+// ==========================================
+// UI Rendering
+// ==========================================
+function renderMessages(messages) {
+    hideWelcomeScreen();
+
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+
+    container.innerHTML = messages.map(msg => createMessageHTML(msg)).join('');
+    scrollToBottom();
+}
+
+function createMessageHTML(msg) {
+    const isUser = msg.role === 'user';
+    const avatar = isUser ? '<i class="fa-solid fa-user"></i>' : '🧠';
+    const time = formatTime(msg.timestamp);
+
+    let content = '';
+
+    // File attachment
+    if (msg.file) {
+        content += `
+            <div class="message-file">
+                <i class="fa-solid ${getFileIcon(msg.file.type)}"></i>
+                <span>${escapeHtml(msg.file.name)}</span>
+                ${msg.file.size ? `<small>(${formatFileSize(msg.file.size)})</small>` : ''}
+            </div>
+        `;
+    }
+
+    // Image
+    if (msg.image) {
+        content += `<img src="${msg.image}" alt="صورة مرفقة" loading="lazy">`;
+    }
+
+    // Text content
+    if (msg.content) {
+        if (isUser) {
+            content += `<p>${escapeHtml(msg.content).replace(/\n/g, '<br>')}</p>`;
+        } else {
+            content += parseMarkdown(msg.content);
+        }
+    }
+
+    return `
+        <div class="message ${isUser ? 'user' : 'assistant'}">
+            <div class="message-avatar">${avatar}</div>
+            <div class="message-content">
+                <div class="message-info">
+                    <span class="message-time">${time}</span>
+                </div>
+                ${content}
+            </div>
+        </div>
+    `;
+}
+
+function addMessageToUI(msg) {
+    hideWelcomeScreen();
+
+    const container = document.getElementById('messages-container');
+    if (!container) return;
+
+    container.insertAdjacentHTML('beforeend', createMessageHTML(msg));
+    scrollToBottom();
+}
+
+function showWelcomeScreen() {
+    const welcome = document.getElementById('welcome-screen');
+    const messages = document.getElementById('messages-container');
+
+    if (welcome) welcome.classList.remove('hidden');
+    if (messages) messages.innerHTML = '';
+}
+
+function hideWelcomeScreen() {
+    const welcome = document.getElementById('welcome-screen');
+    if (welcome) welcome.classList.add('hidden');
+}
+
+function scrollToBottom() {
+    const container = document.getElementById('chat-container');
+    if (container) {
+        setTimeout(() => {
+            container.scrollTop = container.scrollHeight;
+        }, 100);
+    }
+}
+
+// ==========================================
 // UI Controls
 // ==========================================
 function toggleSidebar() {
@@ -641,6 +1173,13 @@ function closeSidebar() {
 
     if (sidebar) sidebar.classList.remove('open');
     if (overlay) overlay.classList.remove('active');
+}
+
+function toggleSettings() {
+    const panel = document.getElementById('settings-panel');
+    if (panel) {
+        panel.classList.toggle('open');
+    }
 }
 
 function handleKeyDown(event) {
@@ -663,12 +1202,24 @@ function updateSendButton() {
 
     const hasContent = input.value.trim() || state.currentFile;
     sendBtn.classList.toggle('active', hasContent);
+    sendBtn.disabled = !hasContent || state.isGenerating;
+}
+
+function sendQuickPrompt(text) {
+    const input = document.getElementById('message-input');
+    if (input) {
+        input.value = text;
+        updateSendButton();
+        autoResize(input);
+        sendMessage();
+    }
 }
 
 // ==========================================
 // Utility Functions
 // ==========================================
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -685,15 +1236,71 @@ function parseMarkdown(text) {
     return text.replace(/\n/g, '<br>');
 }
 
+function formatDate(dateString) {
+    try {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (isNaN(diff)) return 'غير معروف';
+        
+        if (diff < 60000) return 'الآن';
+        if (diff < 3600000) return `${Math.floor(diff / 60000)} دقيقة`;
+        if (diff < 86400000) return `${Math.floor(diff / 3600000)} ساعة`;
+        if (diff < 604800000) return `${Math.floor(diff / 86400000)} يوم`;
+        
+        return date.toLocaleDateString('ar-SA');
+    } catch (e) {
+        return 'غير معروف';
+    }
+}
+
+function formatTime(dateString) {
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleTimeString('ar-SA', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+        });
+    } catch (e) {
+        return '';
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 ب';
+    const k = 1024;
+    const sizes = ['ب', 'ك.ب', 'م.ب', 'ج.ب'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// ==========================================
 // Make functions globally available
+// ==========================================
 window.startNewChat = startNewChat;
 window.loadChat = loadChat;
 window.deleteChat = deleteChat;
 window.clearAllHistory = clearAllHistory;
 window.toggleSidebar = toggleSidebar;
+window.toggleSettings = toggleSettings;
 window.sendMessage = sendMessage;
 window.sendQuickPrompt = sendQuickPrompt;
 window.handleFileUpload = handleFileUpload;
 window.clearFile = clearFile;
 window.handleKeyDown = handleKeyDown;
 window.autoResize = autoResize;
+window.toggleVoiceRecording = toggleVoiceRecording;

@@ -8,12 +8,15 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="description" content="Mind AI - العقل الأناني، مساعد ذكاء اصطناعي متطور باللغة العربية">
 
-    <title>Mind AI | العقل الأناني</title>
+    <title>Mind AI v3.0 | العقل الأناني</title>
 
-    <link rel="stylesheet" href="style.css?v=10.0">
+    <link rel="stylesheet" href="style.css?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+    
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
@@ -38,9 +41,9 @@
             <div class="sidebar-footer">
                 <div class="user-info">
                     <i class="fa-solid fa-brain"></i>
-                    <span>Mind AI v2.0</span>
+                    <span>Mind AI v3.0</span>
                 </div>
-                <button class="clear-history-btn" onclick="clearAllHistory()">
+                <button class="clear-history-btn" onclick="clearAllHistory()" title="حذف كل المحادثات">
                     <i class="fa-solid fa-trash"></i>
                 </button>
             </div>
@@ -51,11 +54,11 @@
 
             <!-- Mobile Header -->
             <header class="mobile-header">
-                <button class="menu-btn" onclick="toggleSidebar()">
+                <button class="menu-btn" onclick="toggleSidebar()" aria-label="فتح القائمة">
                     <i class="fa-solid fa-bars"></i>
                 </button>
                 <h1 class="logo">🧠 Mind AI</h1>
-                <button class="new-chat-mobile" onclick="startNewChat()">
+                <button class="new-chat-mobile" onclick="startNewChat()" aria-label="محادثة جديدة">
                     <i class="fa-solid fa-plus"></i>
                 </button>
             </header>
@@ -67,7 +70,7 @@
                 <div class="welcome-screen" id="welcome-screen">
                     <div class="welcome-logo">🧠</div>
                     <h1>Mind AI</h1>
-                    <p class="welcome-subtitle">العقل الأناني - أسألني أي شيء</p>
+                    <p class="welcome-subtitle">الإصدار 3.0 - العقل الأناني المتطور</p>
 
                     <div class="capabilities">
                         <div class="capability-card">
@@ -86,9 +89,9 @@
                             <p>أكتب وأصحح البرمجة</p>
                         </div>
                         <div class="capability-card">
-                            <i class="fa-solid fa-language"></i>
-                            <h3>ترجمة</h3>
-                            <p>أترجم بين اللغات</p>
+                            <i class="fa-solid fa-microphone"></i>
+                            <h3>ميزات صوتية</h3>
+                            <p>تحدث واستمع للردود</p>
                         </div>
                     </div>
 
@@ -99,9 +102,19 @@
                         <button class="prompt-btn" onclick="sendQuickPrompt('اكتب لي كود بايثون لآلة حاسبة')">
                             اكتب لي كود بايثون
                         </button>
-                        <button class="prompt-btn" onclick="sendQuickPrompt('ما هي آخر أخبار التكنولوجيا؟')">
-                            آخر أخبار التكنولوجيا
+                        <button class="prompt-btn" onclick="sendQuickPrompt('كيف أتعلم البرمجة؟')">
+                            كيف أتعلم البرمجة؟
                         </button>
+                        <button class="prompt-btn" onclick="sendQuickPrompt('ما هي آخر أخبار التكنولوجيا؟')">
+                            أخبار التكنولوجيا
+                        </button>
+                    </div>
+                    
+                    <div class="welcome-features">
+                        <p><i class="fa-solid fa-check"></i> معالجة محسنة للأخطاء</p>
+                        <p><i class="fa-solid fa-check"></i> دعم الملفات الكبيرة</p>
+                        <p><i class="fa-solid fa-check"></i> ميزات صوتية جديدة</p>
+                        <p><i class="fa-solid fa-check"></i> واجهة مستخدم محسنة</p>
                     </div>
                 </div>
 
@@ -122,15 +135,15 @@
                             <i class="fa-solid fa-file" id="file-icon"></i>
                             <span id="file-name"></span>
                         </div>
-                        <button class="remove-file-btn" onclick="clearFile()">
+                        <button class="remove-file-btn" onclick="clearFile()" aria-label="إزالة الملف">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
 
                     <!-- Image Preview -->
                     <div class="image-preview hidden" id="image-preview">
-                        <img id="preview-img" src="" alt="preview">
-                        <button class="remove-file-btn" onclick="clearFile()">
+                        <img id="preview-img" src="" alt="معاينة الصورة">
+                        <button class="remove-file-btn" onclick="clearFile()" aria-label="إزالة الصورة">
                             <i class="fa-solid fa-xmark"></i>
                         </button>
                     </div>
@@ -140,17 +153,24 @@
                             <i class="fa-solid fa-paperclip"></i>
                         </label>
                         <input type="file" id="file-upload" accept="image/*,.pdf,.doc,.docx,.txt" class="hidden"
-                            onchange="handleFileUpload(this)">
+                            onchange="handleFileUpload(this)" aria-label="اختيار ملف">
 
                         <textarea id="message-input" placeholder="أرسل رسالة..." rows="1"
-                            onkeydown="handleKeyDown(event)" oninput="autoResize(this)"></textarea>
+                            onkeydown="handleKeyDown(event)" oninput="autoResize(this)" 
+                            aria-label="مربع إدخال الرسالة"></textarea>
 
-                        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+                        <button class="send-btn" id="send-btn" onclick="sendMessage()" aria-label="إرسال الرسالة">
                             <i class="fa-solid fa-arrow-up"></i>
                         </button>
                     </div>
 
-                    <p class="disclaimer">Mind AI قد يرتكب أخطاء. تحقق من المعلومات المهمة.</p>
+                    <div class="input-footer">
+                        <p class="disclaimer">Mind AI قد يرتكب أخطاء. تحقق من المعلومات المهمة.</p>
+                        <div class="voice-info">
+                            <i class="fa-solid fa-microphone"></i>
+                            <span>يدعم الصوت (متوفر في المتصفحات الحديثة)</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -161,7 +181,20 @@
     <!-- Overlay for mobile sidebar -->
     <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
-    <script src="script.js?v=10.0"></script>
+    <!-- Settings Panel (for future use) -->
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <h2>الإعدادات</h2>
+            <button class="close-settings" onclick="toggleSettings()">
+                <i class="fa-solid fa-xmark"></i>
+            </button>
+        </div>
+        <div class="settings-content">
+            <p>سيتم إضافة المزيد من الإعدادات قريباً...</p>
+        </div>
+    </div>
+
+    <script src="script.js?v=3.0"></script>
 </body>
 
 </html>
