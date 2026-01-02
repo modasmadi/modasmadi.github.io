@@ -14,17 +14,22 @@
 
     <!-- Google AdSense -->
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7736190853268583"
-     crossorigin="anonymous"></script>
+        crossorigin="anonymous"></script>
 
 
     <link rel="stylesheet" href="style.css?v=3.0">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
-    
+    <link rel="icon"
+        href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧠</text></svg>">
+
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+
+    <!-- Firebase SDK (Compat for easier integration) -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
 
 <body>
@@ -44,13 +49,31 @@
             </div>
 
             <div class="sidebar-footer">
-                <div class="user-info">
-                    <i class="fa-solid fa-brain"></i>
-                    <span>Mind AI v3.0</span>
+                <!-- Auth Section -->
+                <div id="auth-section" class="auth-section">
+                    <button id="login-btn" class="auth-btn" onclick="loginWithGoogle()">
+                        <i class="fa-brands fa-google"></i>
+                        <span>تسجيل دخول</span>
+                    </button>
+                    <div id="user-profile" class="user-profile" style="display: none;">
+                        <img id="user-avatar" src="" alt="User" class="user-avatar">
+                        <div class="user-details">
+                            <span id="user-name">Guest</span>
+                            <button class="logout-btn" onclick="logout()" title="تسجيل خروج">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <button class="clear-history-btn" onclick="clearAllHistory()" title="حذف كل المحادثات">
-                    <i class="fa-solid fa-trash"></i>
-                </button>
+
+                <div class="app-info-footer">
+                    <button class="clear-history-btn" onclick="clearAllHistory()" title="حذف كل المحادثات">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                    <div class="version-info">
+                        <span>Mind AI v4.2</span>
+                    </div>
+                </div>
             </div>
         </aside>
 
@@ -114,7 +137,7 @@
                             أخبار التكنولوجيا
                         </button>
                     </div>
-                    
+
                     <div class="welcome-features">
                         <p><i class="fa-solid fa-check"></i> معالجة محسنة للأخطاء</p>
                         <p><i class="fa-solid fa-check"></i> دعم الملفات الكبيرة</p>
@@ -161,7 +184,7 @@
                             onchange="handleFileUpload(this)" aria-label="اختيار ملف">
 
                         <textarea id="message-input" placeholder="أرسل رسالة..." rows="1"
-                            onkeydown="handleKeyDown(event)" oninput="autoResize(this)" 
+                            onkeydown="handleKeyDown(event)" oninput="autoResize(this)"
                             aria-label="مربع إدخال الرسالة"></textarea>
 
                         <button class="send-btn" id="send-btn" onclick="sendMessage()" aria-label="إرسال الرسالة">

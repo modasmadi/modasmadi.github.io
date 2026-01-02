@@ -17,8 +17,19 @@ const CONFIG = {
     MEMORY_KEY: "mind_ai_memory_v1",
     CHATS_PER_PAGE: 10,
     MAX_FILE_SIZE: 10 * 1024 * 1024, // 10MB
-    AUTO_SAVE_INTERVAL: 30000, // 30 ثانية
-    ENABLE_VOICE: true
+    AUTO_SAVE_INTERVAL: 30000,
+    ENABLE_VOICE: true,
+
+    // Firebase Config
+    FIREBASE: {
+        apiKey: "AIzaSyAGVLu3L7hdDnJe4pD5vNhkXU_7SIfIS9w",
+        authDomain: "mind-ai-8f711.firebaseapp.com",
+        projectId: "mind-ai-8f711",
+        storageBucket: "mind-ai-8f711.firebasestorage.app",
+        messagingSenderId: "236650503076",
+        appId: "1:236650503076:web:619f207c1740ac19d07391",
+        measurementId: "G-S7HXGZONG0"
+    }
 };
 
 // AI Modes - أوضاع الذكاء الاصطناعي
@@ -153,13 +164,75 @@ let state = {
 };
 
 // ==========================================
-// Initialize Application
+// Initialization & Firebase Auth
 // ==========================================
+let auth = null;
+let currentUser = null;
+
+// Initialize Firebase if available
+if (typeof firebase !== 'undefined' && CONFIG.FIREBASE.apiKey !== "YOUR_API_KEY") {
+    try {
+        firebase.initializeApp(CONFIG.FIREBASE);
+        auth = firebase.auth();
+
+        // Auth State Listener
+        auth.onAuthStateChanged((user) => {
+            currentUser = user;
+            updateAuthUI(user);
+            if (user) {
+                // Load user specific memory if needed
+                state.memory.userName = user.displayName;
+                showSuccess(`مرحباً بك مجدداً، ${user.displayName.split(' ')[0]}!`);
+            }
+        });
+    } catch (e) {
+        console.error("Firebase Init Error:", e);
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-    initApp();
+    init();
+    updateAuthUI(null); // Initial state
 });
 
-function initApp() {
+// Auth Functions
+async function loginWithGoogle() {
+    if (!auth) {
+        showError('يرجى إضافة إعدادات Firebase في ملف script.js أولاً!');
+        return;
+    }
+    const provider = new firebase.auth.GoogleAuthProvider();
+    try {
+        await auth.signInWithPopup(provider);
+    } catch (error) {
+        showError('فشل تسجيل الدخول: ' + error.message);
+    }
+}
+
+function logout() {
+    if (auth) auth.signOut();
+}
+
+function updateAuthUI(user) {
+    const loginBtn = document.getElementById('login-btn');
+    const userProfile = document.getElementById('user-profile');
+    const userAvatar = document.getElementById('user-avatar');
+    const userName = document.getElementById('user-name');
+
+    if (user) {
+        if (loginBtn) loginBtn.style.display = 'none';
+        if (userProfile) {
+            userProfile.style.display = 'flex';
+            userAvatar.src = user.photoURL || 'https://via.placeholder.com/32';
+            userName.textContent = user.displayName || 'User';
+        }
+    } else {
+        if (loginBtn) loginBtn.style.display = 'flex';
+        if (userProfile) userProfile.style.display = 'none';
+    }
+}
+
+function init() {
     try {
         console.log('🚀 بدء تشغيل Mind AI v3.0...');
 
