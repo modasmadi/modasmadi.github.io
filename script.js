@@ -4,31 +4,130 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function initApp() {
     try {
-        // Restore Streak
         const streak = localStorage.getItem('mind_streak') || 0;
         const el = document.getElementById('streak-count');
         if (el) el.innerText = streak;
     } catch (e) { }
-
     try {
-        // Restore Theme
-        if (localStorage.getItem('mind_theme') === 'light') {
-            document.body.classList.add('light-mode');
-        }
+        if (localStorage.getItem('mind_theme') === 'light') document.body.classList.add('light-mode');
     } catch (e) { }
-
-    // Init Goals
     renderGoals();
 }
 
-// --- Navigation ---
+// --- WEB AUDIO API (The Fix) ---
+let audioCtx;
+let activeOscillators = {};
+
+function initAudio() {
+    if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+// Generate Noise Buffer (Pure JS Sound)
+function createNoiseBuffer() {
+    if (!audioCtx) return;
+    const bufferSize = audioCtx.sampleRate * 2; // 2 seconds buffer
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+
+    for (let i = 0; i < bufferSize; i++) {
+        // White noise
+        data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+}
+
+window.toggleNoise = function (type) {
+    // 1. Init Audio Context on First Click (Required for Mobile)
+    initAudio();
+
+    const btn = document.getElementById('modal-body').querySelector('#btn-' + type);
+
+    // If playing, stop it
+    if (activeOscillators[type]) {
+        activeOscillators[type].stop();
+        activeOscillators[type] = null;
+        if (btn) btn.classList.remove('playing');
+        return;
+    }
+
+    // Stop other noise first (optional, but cleaner)
+    stopAllNoise();
+
+    // 2. Create Source
+    const buffer = createNoiseBuffer();
+    const noiseSource = audioCtx.createBufferSource();
+    noiseSource.buffer = buffer;
+    noiseSource.loop = true;
+
+    // 3. Create Filter to shape the sound (Rain vs Fire)
+    const filter = audioCtx.createBiquadFilter();
+
+    if (type === 'rain') {
+        // Brown-ish noise for Rain (Low Pass)
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+    } else {
+        // Crackle-ish noise for Fire (High Pass + Low Pass combo approximation)
+        filter.type = 'lowpass';
+        filter.frequency.value = 800; // Slightly brighter/warmer
+    }
+
+    // 4. Volume Control
+    const gainNode = audioCtx.createGain();
+    gainNode.gain.value = 0.5; // 50% Volume
+
+    // Connect graph: Source -> Filter -> Gain -> Destination
+    noiseSource.connect(filter);
+    filter.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+
+    noiseSource.start();
+    activeOscillators[type] = noiseSource;
+    if (btn) btn.classList.add('playing');
+};
+
+window.stopAllNoise = function () {
+    Object.keys(activeOscillators).forEach(key => {
+        if (activeOscillators[key]) {
+            try { activeOscillators[key].stop(); } catch (e) { }
+            activeOscillators[key] = null;
+        }
+    });
+    // Remove playing classes
+    const btns = document.querySelectorAll('.noise-btn');
+    btns.forEach(b => b.classList.remove('playing'));
+};
+
+window.playAlarm = function () {
+    initAudio();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+    osc.frequency.exponentialRampToValueAtTime(440, audioCtx.currentTime + 0.5);
+
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+};
+
+
+// --- Standard Logic (Same as before) ---
 window.switchPage = function (pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
     const target = document.getElementById('page-' + pageId);
     if (target) target.classList.add('active-page');
-
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
     // Manual mapping
     const navs = document.querySelectorAll('.nav-item');
     if (pageId === 'home' && navs[0]) navs[0].classList.add('active');
@@ -43,17 +142,13 @@ window.toggleTheme = function () {
     localStorage.setItem('mind_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
 };
 
-// --- Modal ---
 window.openTool = function (toolName) {
     const modal = document.getElementById('tool-modal');
     const body = document.getElementById('modal-body');
     const tpl = document.getElementById('tpl-' + toolName);
-
     if (!modal || !body || !tpl) return;
-
     body.innerHTML = tpl.innerHTML;
     modal.classList.remove('hidden');
-
     if (toolName === 'calculator') clearCalc();
 };
 
@@ -63,31 +158,6 @@ window.closeTool = function () {
     stopFocus();
     stopTimer();
     stopAllNoise();
-};
-
-// --- Audio System (Robust via HTML Tabs) ---
-window.toggleNoise = function (type) {
-    const audio = document.getElementById('audio-' + type);
-    const btn = document.getElementById('modal-body').querySelector('#btn-' + type);
-    if (!audio) return;
-
-    if (audio.paused) {
-        audio.play().then(() => {
-            if (btn) btn.classList.add('playing');
-        }).catch(e => {
-            console.warn("Audio Play Error:", e);
-        });
-    } else {
-        audio.pause();
-        if (btn) btn.classList.remove('playing');
-    }
-};
-
-window.stopAllNoise = function () {
-    ['rain', 'fire'].forEach(t => {
-        const a = document.getElementById('audio-' + t);
-        if (a) { a.pause(); a.currentTime = 0; }
-    });
 };
 
 // --- Focus Timer ---
@@ -118,9 +188,7 @@ window.startFocus = function () {
         focusSeconds--;
         if (focusSeconds <= 0) {
             stopFocus();
-            // Try to play alarm
-            const alarm = document.getElementById('audio-alarm');
-            if (alarm) alarm.play().catch(() => { });
+            playAlarm(); // Use JS Alarm
             alert("⏰ انتهى الوقت!");
         }
         updateFocusDisplay();
@@ -162,7 +230,6 @@ window.clearCalc = function () {
 
 window.toggleSign = function () {
     if (calcStr === "0") return;
-    // Basic toggle
     if (!isNaN(parseFloat(calcStr))) {
         calcStr = (parseFloat(calcStr) * -1).toString();
     }
@@ -178,9 +245,7 @@ window.percent = function () {
 
 window.calculate = function () {
     try {
-        // Eval safe string
         calcStr = eval(calcStr.replace('×', '*').replace('÷', '/')).toString();
-        // Limit decimals
         if (calcStr.includes('.')) {
             const arr = calcStr.split('.');
             if (arr[1].length > 5) calcStr = parseFloat(calcStr).toFixed(5);
@@ -233,7 +298,6 @@ function setModalHtml(id, h) { const el = getModalElement('#' + id); if (el) { e
 function showLoading(cb) { const l = document.getElementById('global-loading'); if (l) l.classList.remove('hidden'); setTimeout(() => { if (l) l.classList.add('hidden'); cb(); }, 800); }
 function getVal(id) { const el = getModalElement('#' + id); return el ? el.value : ''; }
 
-// Magic
 window.calculateLove = function () { if (!getVal('name1')) return; showLoading(() => { setModalHtml('love-result', `<h1 style="color:#ff7675">${Math.floor(Math.random() * 50) + 50}%</h1><p>حب حقيقي!</p>`); }); };
 window.predictMoney = function () { if (!getVal('money-name')) return; showLoading(() => { const f = ["ثروة طائلة", "نجاح مبهر", "استقرار مالي"]; setModalHtml('money-result', `<h3>${f[Math.floor(Math.random() * f.length)]}</h3>`); }); };
 window.getLuck = function () { showLoading(() => { setModalHtml('luck-result', `<h3>أيام سعيدة قادمة ✨</h3>`); }); };
