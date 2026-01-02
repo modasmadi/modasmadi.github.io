@@ -78,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function initApp() {
     try {
         console.log('🚀 بدء تشغيل Mind AI v3.0...');
-        
+
         // Initialize PDF.js
         if (typeof pdfjsLib !== 'undefined') {
             pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -139,7 +139,7 @@ function setupEventListeners() {
     voiceBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
     voiceBtn.title = 'التحدث بالصوت';
     voiceBtn.onclick = toggleVoiceRecording;
-    
+
     const inputWrapper = document.querySelector('.input-wrapper');
     if (inputWrapper) {
         const textarea = inputWrapper.querySelector('textarea');
@@ -168,7 +168,7 @@ function setupNetworkMonitoring() {
 function handleOnlineStatus() {
     const wasOnline = state.isOnline;
     state.isOnline = navigator.onLine;
-    
+
     if (!wasOnline && state.isOnline) {
         showSuccess('تم استعادة الاتصال بالإنترنت');
     } else if (wasOnline && !state.isOnline) {
@@ -181,9 +181,9 @@ function handleOnlineStatus() {
 // ==========================================
 function showLoading(message = 'جاري التحميل...') {
     if (state.isLoading) return;
-    
+
     state.isLoading = true;
-    
+
     const loadingEl = document.createElement('div');
     loadingEl.className = 'global-loading';
     loadingEl.id = 'global-loading';
@@ -191,9 +191,9 @@ function showLoading(message = 'جاري التحميل...') {
         <div class="loading-spinner"></div>
         <span>${message}</span>
     `;
-    
+
     document.body.appendChild(loadingEl);
-    
+
     // Disable UI elements
     document.querySelectorAll('button, input, textarea, .attach-btn').forEach(el => {
         el.style.pointerEvents = 'none';
@@ -205,7 +205,7 @@ function hideLoading() {
     state.isLoading = false;
     const loadingEl = document.getElementById('global-loading');
     if (loadingEl) loadingEl.remove();
-    
+
     // Re-enable UI elements
     document.querySelectorAll('button, input, textarea, .attach-btn').forEach(el => {
         el.style.pointerEvents = '';
@@ -216,7 +216,7 @@ function hideLoading() {
 function showFileLoading(filename) {
     const preview = document.getElementById('file-preview');
     if (!preview) return;
-    
+
     preview.innerHTML = `
         <div class="file-info">
             <div class="loading-spinner small"></div>
@@ -232,10 +232,10 @@ function showFileLoading(filename) {
 function showMessageLoading() {
     const container = document.getElementById('messages-container');
     if (!container) return;
-    
+
     const typingEl = document.getElementById('typing-indicator');
     if (typingEl) typingEl.remove();
-    
+
     const loadingHTML = `
         <div class="message assistant" id="message-loading">
             <div class="message-avatar">🧠</div>
@@ -251,7 +251,7 @@ function showMessageLoading() {
             </div>
         </div>
     `;
-    
+
     container.insertAdjacentHTML('beforeend', loadingHTML);
     scrollToBottom();
 }
@@ -266,10 +266,10 @@ function hideMessageLoading() {
 // ==========================================
 function showError(message, isCritical = false) {
     state.error = message;
-    
+
     // Remove existing error
     hideError();
-    
+
     const errorEl = document.createElement('div');
     errorEl.className = `error-toast ${isCritical ? 'critical' : ''}`;
     errorEl.innerHTML = `
@@ -281,10 +281,10 @@ function showError(message, isCritical = false) {
             <i class="fa-solid fa-xmark"></i>
         </button>
     `;
-    
+
     errorEl.id = 'error-toast';
     document.body.appendChild(errorEl);
-    
+
     // Auto-hide non-critical errors
     if (!isCritical) {
         setTimeout(() => {
@@ -294,7 +294,7 @@ function showError(message, isCritical = false) {
             }
         }, 5000);
     }
-    
+
     // Log to console
     console.error('Mind AI Error:', message);
 }
@@ -321,10 +321,10 @@ function showWarning(message) {
             <i class="fa-solid fa-xmark"></i>
         </button>
     `;
-    
+
     warningEl.id = 'warning-toast';
     document.body.appendChild(warningEl);
-    
+
     setTimeout(() => {
         warningEl.classList.add('fading');
         setTimeout(() => warningEl.remove(), 300);
@@ -340,10 +340,10 @@ function showSuccess(message) {
             <span>${escapeHtml(message)}</span>
         </div>
     `;
-    
+
     successEl.id = 'success-toast';
     document.body.appendChild(successEl);
-    
+
     setTimeout(() => {
         successEl.classList.add('fading');
         setTimeout(() => successEl.remove(), 300);
@@ -352,7 +352,7 @@ function showSuccess(message) {
 
 function handleAPIError(error, context = '') {
     let userMessage = '';
-    
+
     if (error.message.includes('Failed to fetch')) {
         userMessage = 'فشل الاتصال بالخادم. تحقق من اتصالك بالإنترنت.';
     } else if (error.message.includes('429')) {
@@ -362,11 +362,11 @@ function handleAPIError(error, context = '') {
     } else {
         userMessage = `خطأ: ${error.message || 'غير معروف'}`;
     }
-    
+
     if (context) {
         userMessage = `${context}: ${userMessage}`;
     }
-    
+
     showError(userMessage);
     return userMessage;
 }
@@ -442,7 +442,7 @@ async function startNewChat() {
         }
 
         showLoading('جاري إنشاء محادثة جديدة...');
-        
+
         const chat = {
             id: 'chat_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             title: 'محادثة جديدة',
@@ -466,16 +466,16 @@ async function startNewChat() {
         renderChatHistory(1);
         showWelcomeScreen();
         closeSidebar();
-        
+
         hideLoading();
         showSuccess('تم إنشاء محادثة جديدة');
-        
+
         // Focus on input
         setTimeout(() => {
             const input = document.getElementById('message-input');
             if (input) input.focus();
         }, 100);
-        
+
     } catch (error) {
         hideLoading();
         showError('خطأ في إنشاء المحادثة: ' + error.message);
@@ -490,7 +490,7 @@ async function loadChat(chatId) {
         }
 
         showLoading('جاري تحميل المحادثة...');
-        
+
         const chat = state.chats.find(c => c.id === chatId);
         if (!chat) {
             throw new Error('المحادثة غير موجودة');
@@ -502,10 +502,10 @@ async function loadChat(chatId) {
         renderChatHistory(state.currentPage);
         renderMessages(chat.messages);
         closeSidebar();
-        
+
         hideLoading();
         showSuccess('تم تحميل المحادثة');
-        
+
     } catch (error) {
         hideLoading();
         showError('خطأ في تحميل المحادثة: ' + error.message);
@@ -514,14 +514,14 @@ async function loadChat(chatId) {
 
 async function deleteChat(chatId, event) {
     event.stopPropagation();
-    
+
     if (!confirm('هل أنت متأكد من حذف هذه المحادثة؟ لا يمكن التراجع عن هذا الإجراء.')) {
         return;
     }
 
     try {
         showLoading('جاري حذف المحادثة...');
-        
+
         state.chats = state.chats.filter(c => c.id !== chatId);
         await saveChats();
 
@@ -550,7 +550,7 @@ async function clearAllHistory() {
 
     try {
         showLoading('جاري حذف جميع المحادثات...');
-        
+
         state.chats = [];
         state.currentChatId = null;
         state.currentPage = 1;
@@ -560,7 +560,7 @@ async function clearAllHistory() {
 
         renderChatHistory();
         showWelcomeScreen();
-        
+
         hideLoading();
         showSuccess('تم حذف جميع المحادثات بنجاح');
     } catch (error) {
@@ -595,10 +595,10 @@ async function handleFileUpload(input) {
             if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(fileType)) {
                 throw new Error('نوع الصورة غير مدعوم. يرجى استخدام JPEG, PNG, GIF, أو WebP');
             }
-            
+
             const dataUrl = await readFileAsDataURL(file);
             const img = new Image();
-            
+
             await new Promise((resolve, reject) => {
                 img.onload = resolve;
                 img.onerror = () => reject(new Error('صورة تالفة أو غير مقروءة'));
@@ -619,14 +619,14 @@ async function handleFileUpload(input) {
                 dataUrl: finalDataUrl,
                 dimensions: { width: img.width, height: img.height }
             };
-            
+
             showImagePreview(finalDataUrl);
 
         } else if (extension === 'pdf') {
             const text = await extractPDFText(file);
-            state.currentFile = { 
-                type: 'pdf', 
-                name: fileName, 
+            state.currentFile = {
+                type: 'pdf',
+                name: fileName,
                 size: file.size,
                 data: text.substring(0, 50000) // Limit text extraction
             };
@@ -634,9 +634,9 @@ async function handleFileUpload(input) {
 
         } else if (extension === 'docx' || extension === 'doc') {
             const text = await extractWordText(file);
-            state.currentFile = { 
-                type: 'doc', 
-                name: fileName, 
+            state.currentFile = {
+                type: 'doc',
+                name: fileName,
                 size: file.size,
                 data: text.substring(0, 50000)
             };
@@ -644,9 +644,9 @@ async function handleFileUpload(input) {
 
         } else if (extension === 'txt') {
             const text = await file.text();
-            state.currentFile = { 
-                type: 'txt', 
-                name: fileName, 
+            state.currentFile = {
+                type: 'txt',
+                name: fileName,
                 size: file.size,
                 data: text.substring(0, 50000)
             };
@@ -670,12 +670,12 @@ function compressImage(img) {
     return new Promise((resolve) => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        
+
         // Calculate new dimensions
         let width = img.width;
         let height = img.height;
         const maxDimension = 1200;
-        
+
         if (width > maxDimension || height > maxDimension) {
             if (width > height) {
                 height = (height * maxDimension) / width;
@@ -685,12 +685,12 @@ function compressImage(img) {
                 height = maxDimension;
             }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         resolve(canvas.toDataURL('image/jpeg', 0.8));
     });
 }
@@ -786,18 +786,18 @@ function initVoiceRecognition() {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         state.voiceRecognition = new SpeechRecognition();
-        
+
         state.voiceRecognition.lang = 'ar-SA';
         state.voiceRecognition.continuous = false;
         state.voiceRecognition.interimResults = false;
         state.voiceRecognition.maxAlternatives = 1;
-        
+
         state.voiceRecognition.onstart = () => {
             state.isRecording = true;
             updateVoiceButton();
             showSuccess('جاري الاستماع... تكلم الآن');
         };
-        
+
         state.voiceRecognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             const input = document.getElementById('message-input');
@@ -808,7 +808,7 @@ function initVoiceRecognition() {
                 showSuccess('تم التعرف على الصوت');
             }
         };
-        
+
         state.voiceRecognition.onerror = (event) => {
             if (event.error === 'not-allowed') {
                 showError('يجب السماح باستخدام الميكروفون');
@@ -820,12 +820,12 @@ function initVoiceRecognition() {
             state.isRecording = false;
             updateVoiceButton();
         };
-        
+
         state.voiceRecognition.onend = () => {
             state.isRecording = false;
             updateVoiceButton();
         };
-        
+
         console.log('✅ Voice recognition initialized');
     } else {
         console.warn('❌ Voice recognition not supported');
@@ -854,8 +854,8 @@ function toggleVoiceRecording() {
 function updateVoiceButton() {
     const voiceBtn = document.querySelector('.voice-btn');
     if (voiceBtn) {
-        voiceBtn.innerHTML = state.isRecording 
-            ? '<i class="fa-solid fa-stop"></i>' 
+        voiceBtn.innerHTML = state.isRecording
+            ? '<i class="fa-solid fa-stop"></i>'
             : '<i class="fa-solid fa-microphone"></i>';
         voiceBtn.classList.toggle('recording', state.isRecording);
         voiceBtn.title = state.isRecording ? 'إيقاف التسجيل' : 'التحدث بالصوت';
@@ -964,7 +964,7 @@ async function sendMessage() {
 
     } catch (error) {
         hideMessageLoading();
-        
+
         const errorMessage = {
             role: 'assistant',
             content: `⚠️ عذراً، حدث خطأ: ${error.message}\n\nيرجى المحاولة مرة أخرى.`,
@@ -974,7 +974,7 @@ async function sendMessage() {
         chat.messages.push(errorMessage);
         chat.updatedAt = new Date().toISOString();
         await saveChats();
-        
+
         addMessageToUI(errorMessage);
         showError('خطأ في إرسال الرسالة: ' + error.message);
     }
@@ -1029,7 +1029,7 @@ async function sendToGroq(chatMessages, currentMessage) {
 
 async function sendToGemini(text, imageBase64) {
     const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`,
         {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1074,7 +1074,7 @@ function setupAutoSave() {
     if (state.autoSaveTimer) {
         clearInterval(state.autoSaveTimer);
     }
-    
+
     if (state.settings.autoSave) {
         state.autoSaveTimer = setInterval(() => {
             autoSaveCurrentChat();
@@ -1108,7 +1108,7 @@ function loadChats() {
     try {
         const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
         state.chats = saved ? JSON.parse(saved) : [];
-        
+
         // Migrate from old version if needed
         const oldChats = localStorage.getItem('mind_ai_chats');
         if (oldChats && state.chats.length === 0) {
@@ -1307,14 +1307,14 @@ function formatDate(dateString) {
         const date = new Date(dateString);
         const now = new Date();
         const diff = now - date;
-        
+
         if (isNaN(diff)) return 'غير معروف';
-        
+
         if (diff < 60000) return 'الآن';
         if (diff < 3600000) return `${Math.floor(diff / 60000)} دقيقة`;
         if (diff < 86400000) return `${Math.floor(diff / 3600000)} ساعة`;
         if (diff < 604800000) return `${Math.floor(diff / 86400000)} يوم`;
-        
+
         return date.toLocaleDateString('ar-SA');
     } catch (e) {
         return 'غير معروف';
@@ -1324,10 +1324,10 @@ function formatDate(dateString) {
 function formatTime(dateString) {
     try {
         const date = new Date(dateString);
-        return date.toLocaleTimeString('ar-SA', { 
-            hour: '2-digit', 
+        return date.toLocaleTimeString('ar-SA', {
+            hour: '2-digit',
             minute: '2-digit',
-            hour12: true 
+            hour12: true
         });
     } catch (e) {
         return '';
