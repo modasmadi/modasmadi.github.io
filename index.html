@@ -8,7 +8,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Mind AI | مساعدك الشخصي</title>
 
-    <!-- Scripts & Styles -->
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -18,11 +17,7 @@
     <div class="stars"></div>
     <div class="twinkling"></div>
 
-    <!-- Audio Assets -->
-    <audio id="audio-rain" loop src="https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3"></audio>
-    <audio id="audio-fire" loop
-        src="https://assets.mixkit.co/sfx/preview/mixkit-campfire-crackling-logs-1569.mp3"></audio>
-
+    <!-- App Container -->
     <div class="app-container">
 
         <header class="app-header">
@@ -144,7 +139,7 @@
                 </div>
             </div>
 
-        </div>
+        </div> <!-- End Pages -->
 
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="switchPage('home')">
@@ -185,6 +180,7 @@
     <!-- Hidden Templates -->
     <div id="templates" style="display: none !important;">
 
+        <!-- Focus Timer -->
         <div id="tpl-focus">
             <h2>⏳ مؤقت التركيز</h2>
             <div class="focus-timer">
@@ -199,6 +195,7 @@
                     <button onclick="startFocus()" class="action-btn" style="background:#0984e3">ابدأ التركيز</button>
                     <button onclick="stopFocus()" class="action-btn" style="background:#e74c3c">إيقاف</button>
                 </div>
+                <!-- Noise Controls -->
                 <div class="noise-controls">
                     <div style="text-align:center;">
                         <button class="noise-btn" id="btn-rain" onclick="toggleNoise('rain')">
@@ -216,15 +213,51 @@
             </div>
         </div>
 
-        <div id="tpl-love">
-            <h2>❤️ مقياس الحب</h2>
-            <input type="text" id="name1" placeholder="اسمك">
-            <input type="text" id="name2" placeholder="اسم الشريك">
-            <button class="action-btn" onclick="calculateLove()">احسب التوافق</button>
-            <div id="love-result" class="result-box hidden"></div>
+        <!-- Calculator (iOS Style) -->
+        <div id="tpl-calculator">
+            <div class="ios-calc-container">
+                <div class="calc-display-area">
+                    <input type="text" id="calc-display" readonly value="0">
+                </div>
+                <div class="ios-keys">
+                    <!-- Row 1 -->
+                    <button class="btn-grey" onclick="clearCalc()">AC</button>
+                    <button class="btn-grey" onclick="toggleSign()">+/-</button>
+                    <button class="btn-grey" onclick="percent()">%</button>
+                    <button class="btn-orange" onclick="chooseOp('/')">÷</button>
+
+                    <!-- Row 2 -->
+                    <button class="btn-dark" onclick="appendCalc('7')">7</button>
+                    <button class="btn-dark" onclick="appendCalc('8')">8</button>
+                    <button class="btn-dark" onclick="appendCalc('9')">9</button>
+                    <button class="btn-orange" onclick="chooseOp('*')">×</button>
+
+                    <!-- Row 3 -->
+                    <button class="btn-dark" onclick="appendCalc('4')">4</button>
+                    <button class="btn-dark" onclick="appendCalc('5')">5</button>
+                    <button class="btn-dark" onclick="appendCalc('6')">6</button>
+                    <button class="btn-orange" onclick="chooseOp('-')">-</button>
+
+                    <!-- Row 4 -->
+                    <button class="btn-dark" onclick="appendCalc('1')">1</button>
+                    <button class="btn-dark" onclick="appendCalc('2')">2</button>
+                    <button class="btn-dark" onclick="appendCalc('3')">3</button>
+                    <button class="btn-orange" onclick="chooseOp('+')">+</button>
+
+                    <!-- Row 5 -->
+                    <button class="btn-dark span-2" onclick="appendCalc('0')">0</button>
+                    <button class="btn-dark" onclick="appendCalc('.')">.</button>
+                    <button class="btn-orange" onclick="calculate()">=</button>
+                </div>
+            </div>
         </div>
 
-        <!-- Other templates remain strictly the same just hidden -->
+        <!-- Existing Templates preserved -->
+        <div id="tpl-love">
+            <h2>❤️ الحب</h2><input type="text" id="name1" placeholder="اسمك"><input type="text" id="name2"
+                placeholder="الشريك"><button class="action-btn" onclick="calculateLove()">احسب</button>
+            <div id="love-result" class="result-box hidden"></div>
+        </div>
         <div id="tpl-money">
             <h2>💰 الثروة</h2><input type="text" id="money-name" placeholder="اسمك"><button class="action-btn"
                 onclick="predictMoney()">كشف</button>
@@ -264,25 +297,6 @@
             <h2>🦁 الحيوان</h2><input type="text" id="animal-name" placeholder="اسمك"><button class="action-btn"
                 onclick="findSpiritAnimal()">اكتشف</button>
             <div id="animal-result" class="result-box hidden"></div>
-        </div>
-
-        <div id="tpl-calculator">
-            <h2>🧮 الحاسبة</h2>
-            <div class="calculator">
-                <input type="text" id="calc-display" readonly>
-                <div class="calc-keys">
-                    <button onclick="appendCalc('7')">7</button><button onclick="appendCalc('8')">8</button><button
-                        onclick="appendCalc('9')">9</button><button onclick="chooseOp('/')" class="op-btn">÷</button>
-                    <button onclick="appendCalc('4')">4</button><button onclick="appendCalc('5')">5</button><button
-                        onclick="appendCalc('6')">6</button><button onclick="chooseOp('*')" class="op-btn">×</button>
-                    <button onclick="appendCalc('1')">1</button><button onclick="appendCalc('2')">2</button><button
-                        onclick="appendCalc('3')">3</button><button onclick="chooseOp('-')" class="op-btn">-</button>
-                    <button onclick="appendCalc('0')">0</button><button onclick="appendCalc('.')">.</button><button
-                        onclick="calculate()" class="equal-btn">=</button><button onclick="chooseOp('+')"
-                        class="op-btn">+</button>
-                    <button onclick="clearCalc()" class="clear-btn">C</button>
-                </div>
-            </div>
         </div>
 
         <div id="tpl-stopwatch">

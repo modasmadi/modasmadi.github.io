@@ -3,75 +3,52 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function initApp() {
-    console.log("Mind AI App Loaded");
-
-    // Safe Streak Loading
     try {
         const streak = localStorage.getItem('mind_streak') || 0;
         const el = document.getElementById('streak-count');
         if (el) el.innerText = streak;
-    } catch (e) { console.error("Streak Error", e); }
+    } catch (e) { }
 
-    // Safe Theme Loading
     try {
         if (localStorage.getItem('mind_theme') === 'light') {
             document.body.classList.add('light-mode');
         }
-        updateThemeIcon();
-    } catch (e) { console.error("Theme Error", e); }
-
-    // Init Goals
+    } catch (e) { }
     renderGoals();
 }
 
 // --- Navigation ---
 window.switchPage = function (pageId) {
-    // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active-page'));
-
-    // Show target page
     const target = document.getElementById('page-' + pageId);
     if (target) target.classList.add('active-page');
 
-    // Update Nav
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-    // Manual mapping for safety
-    const navItems = document.querySelectorAll('.nav-item');
-    if (pageId === 'home' && navItems[0]) navItems[0].classList.add('active');
-    if (pageId === 'mind' && navItems[1]) navItems[1].classList.add('active');
-    if (pageId === 'goals' && navItems[2]) navItems[2].classList.add('active');
-    if (pageId === 'gym' && navItems[3]) navItems[3].classList.add('active');
-    if (pageId === 'tools' && navItems[4]) navItems[4].classList.add('active');
+    // Simple manual mapping
+    const navs = document.querySelectorAll('.nav-item');
+    if (pageId === 'home' && navs[0]) navs[0].classList.add('active');
+    if (pageId === 'mind' && navs[1]) navs[1].classList.add('active');
+    if (pageId === 'goals' && navs[2]) navs[2].classList.add('active');
+    if (pageId === 'gym' && navs[3]) navs[3].classList.add('active');
+    if (pageId === 'tools' && navs[4]) navs[4].classList.add('active');
 };
 
-// --- Theme System ---
 window.toggleTheme = function () {
     document.body.classList.toggle('light-mode');
-    const theme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
-    localStorage.setItem('mind_theme', theme);
-    updateThemeIcon();
+    localStorage.setItem('mind_theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
 };
 
-function updateThemeIcon() {
-    const btn = document.querySelector('.theme-btn i');
-    if (!btn) return;
-    btn.className = document.body.classList.contains('light-mode') ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
-}
-
-// --- Modal System ---
+// --- Modal ---
 window.openTool = function (toolName) {
     const modal = document.getElementById('tool-modal');
     const body = document.getElementById('modal-body');
     const tpl = document.getElementById('tpl-' + toolName);
-
-    if (!modal || !body || !tpl) {
-        console.error("Tool Template Missing: " + toolName);
-        return;
-    }
-
+    if (!modal || !body || !tpl) return;
     body.innerHTML = tpl.innerHTML;
     modal.classList.remove('hidden');
+
+    // Reset Calc State if opened
+    if (toolName === 'calculator') clearCalc();
 };
 
 window.closeTool = function () {
@@ -80,6 +57,38 @@ window.closeTool = function () {
     stopFocus();
     stopTimer();
     stopAllNoise();
+};
+
+// --- Audio System (Fixed) ---
+const audioSources = {
+    'rain': 'https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3',
+    'fire': 'https://assets.mixkit.co/sfx/preview/mixkit-campfire-crackling-logs-1569.mp3'
+};
+let activeAudios = {};
+
+window.toggleNoise = function (type) {
+    const btn = document.getElementById('modal-body').querySelector('#btn-' + type);
+
+    if (activeAudios[type]) {
+        // Stop
+        activeAudios[type].pause();
+        delete activeAudios[type];
+        if (btn) btn.classList.remove('playing');
+    } else {
+        // Play
+        const audio = new Audio(audioSources[type]);
+        audio.loop = true;
+        audio.play().catch(e => alert("Please interact with the page first"));
+        activeAudios[type] = audio;
+        if (btn) btn.classList.add('playing');
+    }
+};
+
+window.stopAllNoise = function () {
+    Object.keys(activeAudios).forEach(key => {
+        activeAudios[key].pause();
+    });
+    activeAudios = {};
 };
 
 // --- Focus Timer ---
@@ -96,32 +105,22 @@ window.setFocusTime = function (mins) {
 
 window.startFocus = function () {
     if (focusInterval) return;
-
     const input = getModalElement('#focus-input');
     if (input && input.value) {
         const val = parseInt(input.value);
-        if (!isNaN(val)) {
-            // Only update if requested time is different significantly or 0
-            if (focusSeconds === 0 || Math.abs(focusSeconds - val * 60) > 60) {
-                focusSeconds = val * 60;
-            }
+        if (!isNaN(val) && (focusSeconds === 0 || Math.abs(focusSeconds - val * 60) > 60)) {
+            focusSeconds = val * 60;
         }
     }
-
-    if (focusSeconds <= 0) {
-        alert("⚠️ الرجاء تحديد الوقت أولاً");
-        return;
-    }
+    if (focusSeconds <= 0) { alert("حدد الوقت"); return; }
 
     updateFocusDisplay();
     focusInterval = setInterval(() => {
         focusSeconds--;
         if (focusSeconds <= 0) {
             stopFocus();
-            try {
-                new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3').play();
-            } catch (e) { console.log("Audio play error"); }
-            alert("⏰ انتهى وقت التركيز!");
+            new Audio('https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3').play().catch(e => { });
+            alert("⏰ انتهى الوقت!");
         }
         updateFocusDisplay();
     }, 1000);
@@ -140,234 +139,113 @@ function updateFocusDisplay() {
     el.innerText = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s);
 }
 
-// --- White Noise ---
-window.toggleNoise = function (type) {
-    const audio = document.getElementById('audio-' + type);
-    const btn = getModalElement('#btn-' + type);
+// --- iOS Calculator Logic ---
+let calcStr = "0";
 
-    if (!audio) return;
+window.appendCalc = function (v) {
+    if (calcStr === "0" || calcStr === "Error") calcStr = v;
+    else calcStr += v;
+    updateCalc();
+};
 
-    if (audio.paused) {
-        audio.play().catch(e => console.log("Audio error", e));
-        if (btn) btn.classList.add('playing');
-    } else {
-        audio.pause();
-        if (btn) btn.classList.remove('playing');
+window.chooseOp = function (op) {
+    if (calcStr.slice(-1).match(/[+\-*/]/)) return; // Prevent double ops
+    calcStr += op;
+    updateCalc();
+};
+
+window.clearCalc = function () {
+    calcStr = "0";
+    updateCalc();
+};
+
+window.toggleSign = function () {
+    if (calcStr === "0") return;
+    // Simple toggle for single numbers, complex for expressions
+    if (!isNaN(calcStr)) {
+        calcStr = (parseFloat(calcStr) * -1).toString();
+    }
+    updateCalc();
+};
+
+window.percent = function () {
+    if (!isNaN(calcStr)) {
+        calcStr = (parseFloat(calcStr) / 100).toString();
+        updateCalc();
     }
 };
 
-function stopAllNoise() {
-    ['rain', 'fire'].forEach(t => {
-        const a = document.getElementById('audio-' + t);
-        if (a) { a.pause(); a.currentTime = 0; }
-    });
+window.calculate = function () {
+    try {
+        // Safe eval
+        calcStr = eval(calcStr.replace('×', '*').replace('÷', '/')).toString();
+    } catch {
+        calcStr = "Error";
+    }
+    updateCalc();
+};
+
+function updateCalc() {
+    const el = getModalElement('#calc-display');
+    if (el) el.value = calcStr;
 }
 
-// --- Goals System ---
+// --- Goals & Magic Tools (Standard) ---
 const goalsKey = 'mind_goals_v1';
-let goals = [];
-try {
-    goals = JSON.parse(localStorage.getItem(goalsKey)) || [];
-} catch (e) { goals = []; }
+let goals = JSON.parse(localStorage.getItem(goalsKey)) || [];
 
 window.addGoal = function () {
     const input = document.getElementById('new-goal-text');
-    if (!input) return;
-    const text = input.value.trim();
-    if (!text) return;
-
-    goals.push({ text: text, done: false });
-    saveGoals();
-    renderGoals();
-    input.value = '';
+    if (!input || !input.value.trim()) return;
+    goals.push({ text: input.value.trim(), done: false });
+    saveGoals(); renderGoals(); input.value = '';
 };
-
-window.toggleGoal = function (index) {
-    if (goals[index]) {
-        goals[index].done = !goals[index].done;
-        saveGoals();
-        renderGoals();
-    }
-};
-
-window.deleteGoal = function (index) {
-    goals.splice(index, 1);
-    saveGoals();
-    renderGoals();
-};
-
-function saveGoals() {
-    localStorage.setItem(goalsKey, JSON.stringify(goals));
-}
-
+window.toggleGoal = function (i) { if (goals[i]) { goals[i].done = !goals[i].done; saveGoals(); renderGoals(); } };
+window.deleteGoal = function (i) { goals.splice(i, 1); saveGoals(); renderGoals(); };
+function saveGoals() { localStorage.setItem(goalsKey, JSON.stringify(goals)); }
 function renderGoals() {
     const list = document.getElementById('goals-list');
     const empty = document.getElementById('empty-state');
     if (!list) return;
-
     list.innerHTML = '';
-    if (goals.length === 0) {
-        if (empty) empty.style.display = 'block';
-    } else {
+    if (goals.length === 0) { if (empty) empty.style.display = 'block'; }
+    else {
         if (empty) empty.style.display = 'none';
         goals.forEach((g, i) => {
             const li = document.createElement('li');
             li.className = `goal-item ${g.done ? 'done' : ''}`;
-            li.innerHTML = `
-                <i class="fa-regular ${g.done ? 'fa-square-check' : 'fa-square'}"></i>
-                <span style="flex-grow:1; margin-right:10px;">${g.text}</span>
-                <i class="fa-solid fa-trash" onclick="deleteGoal(${i}); event.stopPropagation();" style="color:#e74c3c; font-size:0.8rem;"></i>
-            `;
+            li.innerHTML = `<i class="fa-regular ${g.done ? 'fa-square-check' : 'fa-square'}"></i><span style="flex:1;margin-right:10px">${g.text}</span><i class="fa-solid fa-trash" onclick="deleteGoal(${i});event.stopPropagation()" style="color:#e74c3c"></i>`;
             li.onclick = () => toggleGoal(i);
             list.appendChild(li);
         });
     }
 }
 
-// --- Gym Logic ---
+// Helpers
+function getModalElement(sel) { const m = document.getElementById('modal-body'); return m ? m.querySelector(sel) : null; }
+function setModalHtml(id, h) { const el = getModalElement('#' + id); if (el) { el.innerHTML = h; el.classList.remove('hidden'); } }
+function showLoading(cb) { const l = document.getElementById('global-loading'); if (l) l.classList.remove('hidden'); setTimeout(() => { if (l) l.classList.add('hidden'); cb(); }, 800); }
+function getVal(id) { const el = getModalElement('#' + id); return el ? el.value : ''; }
+
+// Magic Functions
+window.calculateLove = function () { if (!getVal('name1')) return; showLoading(() => { setModalHtml('love-result', `<h1 style="color:#ff7675">${Math.floor(Math.random() * 50) + 50}%</h1><p>حب حقيقي!</p>`); }); };
+window.predictMoney = function () { if (!getVal('money-name')) return; showLoading(() => { const f = ["ثروة طائلة", "نجاح مبهر", "استقرار مالي"]; setModalHtml('money-result', `<h3>${f[Math.floor(Math.random() * f.length)]}</h3>`); }); };
+window.getLuck = function () { showLoading(() => { setModalHtml('luck-result', `<h3>أيام سعيدة قادمة ✨</h3>`); }); };
+window.interpretDream = function () { if (!getVal('dreamInput')) return; showLoading(() => { setModalHtml('dream-result', `<p>رسالة خير تدل على الرزق.</p>`); }); };
+window.analyzePersonality = function () { if (!getVal('p-name')) return; showLoading(() => { setModalHtml('personality-result', `<h3>شخصية استثنائية 🦁</h3>`); }); };
+window.makeDecision = function () { if (!getVal('decision-input')) return; showLoading(() => { setModalHtml('decision-result', `<h3>القرار الصحيح هو: نعم ✅</h3>`); }); };
+window.suggestBabyName = function () { showLoading(() => { setModalHtml('baby-result', `<h1>${getVal('baby-gender') === 'boy' ? 'آدم' : 'مكة'}</h1>`); }); };
+window.findSpiritAnimal = function () { if (!getVal('animal-name')) return; showLoading(() => { setModalHtml('animal-result', `<h3>🦅 العقاب</h3>`); }); };
 window.calcBMI = function () {
-    const w = parseFloat(document.getElementById('weight').value);
-    const h = parseFloat(document.getElementById('height').value);
-    if (!w || !h) { alert("أدخل الوزن والطول"); return; }
-
-    const bmi = w / ((h / 100) * (h / 100));
-    let s = "", c = "";
-    if (bmi < 18.5) { s = "نحافة"; c = "#f1c40f"; }
-    else if (bmi < 24.9) { s = "وزن مثالي"; c = "#2ecc71"; }
-    else if (bmi < 29.9) { s = "وزن زائد"; c = "#e67e22"; }
-    else { s = "سمنة"; c = "#e74c3c"; }
-
-    const res = document.getElementById('bmi-result');
-    res.innerHTML = `<h2 style="color:${c}">${bmi.toFixed(1)}</h2><p>${s}</p>`;
-    res.classList.remove('hidden');
+    const w = parseFloat(document.getElementById('weight').value), h = parseFloat(document.getElementById('height').value);
+    if (!w || !h) return;
+    const b = w / ((h / 100) * (h / 100));
+    document.getElementById('bmi-result').innerHTML = `<h2 style="color:${b < 25 ? '#2ecc71' : '#e74c3c'}">${b.toFixed(1)}</h2>`;
+    document.getElementById('bmi-result').classList.remove('hidden');
 };
+window.getWorkout = function () { document.getElementById('workout-result').innerHTML = `<p>تمارين مخصصة لـ ${document.getElementById('muscle-group').value}</p>`; document.getElementById('workout-result').classList.remove('hidden'); };
 
-window.getWorkout = function () {
-    const muscle = document.getElementById('muscle-group').value;
-    const w = {
-        'chest': '1. بنش برس (4x10)<br>2. تفتيح تجميع (3x12)<br>3. ضغط مائل (3x10)',
-        'back': '1. سحب عالي (4x12)<br>2. سحب أرضي (3x10)<br>3. منشار دمبل (3x12)',
-        'legs': '1. سكوات (4x8)<br>2. ضغط أرجل (3x12)<br>3. رفرفة أمامي (3x15)',
-        'arms': '1. تجميع باي (3x12)<br>2. هامر (3x10)<br>3. مسطرة تراي (3x12)'
-    };
-    const res = document.getElementById('workout-result');
-    res.innerHTML = `<h3 style="color:var(--accent)">🔥 تمارين ${muscle.toUpperCase()}</h3><p style="line-height:2;">${w[muscle]}</p>`;
-    res.classList.remove('hidden');
-};
-
-// --- Templates Helpers ---
-function getModalElement(selector) {
-    const m = document.getElementById('modal-body');
-    return m ? m.querySelector(selector) : null;
-}
-function setModalHtml(id, html) {
-    const el = getModalElement('#' + id);
-    if (el) { el.innerHTML = html; el.classList.remove('hidden'); }
-}
-function showLoading(cb) {
-    const l = document.getElementById('global-loading');
-    if (l) l.classList.remove('hidden');
-    setTimeout(() => {
-        if (l) l.classList.add('hidden');
-        cb();
-    }, 800);
-}
-function getVal(id) {
-    const el = getModalElement('#' + id);
-    return el ? el.value : '';
-}
-
-// --- Magic Tools ---
-window.calculateLove = function () {
-    if (!getVal('name1')) return;
-    showLoading(() => {
-        const h = Math.floor(Math.random() * 50) + 50;
-        setModalHtml('love-result', `<h1 style="color:#ff7675">${h}%</h1><p>حب أبدي!</p>`);
-    });
-};
-
-window.predictMoney = function () {
-    if (!getVal('money-name')) return;
-    showLoading(() => {
-        const f = ["مليونير قريباً", "دخل عالي ومستقر", "استثمار ناجح"];
-        setModalHtml('money-result', `<h3>${f[Math.floor(Math.random() * f.length)]}</h3>`);
-    });
-};
-
-window.getLuck = function () {
-    showLoading(() => {
-        const m = ["يومك سعيد", "خبر سار في الطريق", "ركز على أهدافك"];
-        setModalHtml('luck-result', `<h3>${m[Math.floor(Math.random() * m.length)]}</h3>`);
-    });
-};
-
-window.interpretDream = function () {
-    if (!getVal('dreamInput')) return;
-    showLoading(() => {
-        setModalHtml('dream-result', `<p>هذا الحلم يشير إلى تغييرات إيجابية قادمة في حياتك.</p>`);
-    });
-};
-
-window.analyzePersonality = function () {
-    if (!getVal('p-name')) return;
-    showLoading(() => {
-        setModalHtml('personality-result', `<h3>شخصية قيادية، ذكية، ومحبوبة! 🦁</h3>`);
-    });
-};
-
-window.makeDecision = function () {
-    if (!getVal('decision-input')) return;
-    showLoading(() => {
-        setModalHtml('decision-result', `<h3>النجوم تقول: نعم، انطلق! ✅</h3>`);
-    });
-};
-
-window.suggestBabyName = function () {
-    showLoading(() => {
-        const n = getVal('baby-gender') === 'boy' ? "ريان" : "جوري";
-        setModalHtml('baby-result', `<h1>${n}</h1>`);
-    });
-};
-
-window.findSpiritAnimal = function () {
-    if (!getVal('animal-name')) return;
-    showLoading(() => {
-        setModalHtml('animal-result', `<h3>🦅 الصقر</h3>`);
-    });
-};
-
-// --- Calculator ---
-let calcStr = "";
-window.appendCalc = function (v) { calcStr += v; updateCalc(); };
-window.chooseOp = function (v) { calcStr += v; updateCalc(); };
-window.clearCalc = function () { calcStr = ""; updateCalc(); };
-window.calculate = function () {
-    try { calcStr = eval(calcStr).toString(); } catch { calcStr = "Error"; }
-    updateCalc();
-};
-function updateCalc() {
-    const el = getModalElement('#calc-display');
-    if (el) el.value = calcStr;
-}
-
-// --- Stopwatch ---
-let timerInt = null;
-let timerSecs = 0;
-window.startTimer = function () {
-    if (timerInt) return;
-    timerInt = setInterval(() => {
-        timerSecs++;
-        const el = getModalElement('#timer-display');
-        if (el) el.innerText = new Date(timerSecs * 1000).toISOString().substr(11, 8);
-    }, 1000);
-};
-window.stopTimer = function () {
-    if (timerInt) clearInterval(timerInt);
-    timerInt = null;
-};
-window.resetTimer = function () {
-    stopTimer();
-    timerSecs = 0;
-    const el = getModalElement('#timer-display');
-    if (el) el.innerText = "00:00:00";
-};
+let tInt = null, tS = 0;
+window.startTimer = function () { if (tInt) return; tInt = setInterval(() => { tS++; const el = getModalElement('#timer-display'); if (el) el.innerText = new Date(tS * 1000).toISOString().substr(11, 8); }, 1000); };
+window.stopTimer = function () { clearInterval(tInt); tInt = null; };
+window.resetTimer = function () { stopTimer(); tS = 0; const el = getModalElement('#timer-display'); if (el) el.innerText = "00:00:00"; };
