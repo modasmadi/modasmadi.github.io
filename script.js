@@ -191,7 +191,7 @@ window.stopFocus = () => { if (fInt) clearInterval(fInt); fInt = null; };
 function udF() { const e = getModalElement('#focus-display'); if (e) { let m = Math.floor(fS / 60), s = fS % 60; e.innerText = (m < 10 ? '0' + m : m) + ':' + (s < 10 ? '0' + s : s); } }
 
 window.activeOscillators = {};
-window.window.AudioContext = window.AudioContext || window.webkitAudioContext;
+window.AudioContext = window.AudioContext || window.webkitAudioContext;
 window.toggleNoise = (t) => {
     if (!window.AudioContext) return;
     if (!window.aCtx) window.aCtx = new window.AudioContext();
