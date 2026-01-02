@@ -166,3 +166,79 @@ function findSpiritAnimal() {
         document.getElementById('animal-result').classList.remove('hidden');
     });
 }
+
+// --- Calculator Logic ---
+let calcValue = '';
+function appendCalc(val) { calcValue += val; updateDisp(); }
+function clearCalc() { calcValue = ''; updateDisp(); }
+function updateDisp() { document.getElementById('calc-display').value = calcValue; }
+function chooseOp(op) { if (calcValue) { calcValue += op; updateDisp(); } }
+function calculate() {
+    try {
+        calcValue = eval(calcValue).toString();
+        updateDisp();
+    } catch (e) {
+        calcValue = 'Error';
+        updateDisp();
+        setTimeout(clearCalc, 1000);
+    }
+}
+function setCalcMode(mode) {
+    document.querySelectorAll('.calc-mode-switch button').forEach(b => b.classList.remove('active-mode'));
+    event.target.classList.add('active-mode');
+    if (mode === 'scientific') {
+        document.getElementById('simple-keys').classList.add('hidden');
+        document.getElementById('scientific-keys').classList.remove('hidden');
+    } else {
+        document.getElementById('simple-keys').classList.remove('hidden');
+        document.getElementById('scientific-keys').classList.add('hidden');
+    }
+}
+function calcFunc(fn) {
+    if (!calcValue) return;
+    let val = parseFloat(calcValue);
+    let res = 0;
+    if (fn == 'sin') res = Math.sin(val);
+    if (fn == 'cos') res = Math.cos(val);
+    if (fn == 'tan') res = Math.tan(val);
+    if (fn == 'sqrt') res = Math.sqrt(val);
+    if (fn == 'log') res = Math.log10(val);
+    if (fn == 'pow') { calcValue += '**'; updateDisp(); return; } // Handle power op next
+    calcValue = res.toString();
+    updateDisp();
+}
+
+// --- Stopwatch Logic ---
+let timerInterval;
+let seconds = 0;
+let isTimerRunning = false;
+
+function startTimer() {
+    if (!isTimerRunning) {
+        isTimerRunning = true;
+        timerInterval = setInterval(() => {
+            seconds++;
+            updateTimerDisplay();
+        }, 1000);
+    }
+}
+
+function stopTimer() {
+    clearInterval(timerInterval);
+    isTimerRunning = false;
+}
+
+function resetTimer() {
+    stopTimer();
+    seconds = 0;
+    updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+    let h = Math.floor(seconds / 3600);
+    let m = Math.floor((seconds % 3600) / 60);
+    let s = seconds % 60;
+    document.getElementById('timer-display').innerText = `${pad(h)}:${pad(m)}:${pad(s)}`;
+}
+
+function pad(n) { return n < 10 ? '0' + n : n; }

@@ -11,11 +11,11 @@
         content="اكتشف مستقبلك، حلل شخصيتك، واعرف نسبة حبك بالذكاء الاصطناعي. جرب البلورة السحرية الآن!">
 
     <!-- Social Sharing (Open Graph) -->
-    <meta property="og:title" content="🔮 البلورة السحرية: اكتشف خبايا مستقبلك وشخصيتك!">
+    <meta property="og:title" content="🔮 البلورة السحرية (Mind): اكتشف خبايا مستقبلك!">
     <meta property="og:description"
         content="هل شريكك يحبك؟ متى ستصبح غنياً؟ ماذا يعني حلمك؟ الذكاء الاصطناعي يجيبك الآن.">
     <meta property="og:image" content="preview.png">
-    <meta property="og:url" content="https://cute-bunny-11a34f.netlify.app/">
+    <meta property="og:url" content="https://modasmadi.github.io/Mind/">
     <meta property="og:type" content="website">
 
     <link rel="stylesheet" href="style.css">
@@ -74,6 +74,16 @@
                 <div class="icon">🦁</div>
                 <h3>حيوانك الروحي</h3>
                 <p>ماذا تشبه شخصيتك؟</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('calculator')">
+                <div class="icon">🧮</div>
+                <h3>الآلة الحاسبة</h3>
+                <p>علمية وبسيطة للدراسة</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('stopwatch')">
+                <div class="icon">⏱️</div>
+                <h3>ساعة الإيقاف</h3>
+                <p>احسب وقتك بدقة</p>
             </div>
         </main>
 
@@ -160,6 +170,61 @@
             <input type="text" id="animal-name" placeholder="اسمك">
             <button class="action-btn" onclick="findSpiritAnimal()">اظهار حيواني</button>
             <div id="animal-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Calculator Section -->
+        <section id="calculator-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>🧮 الحاسبة الذكية</h2>
+            <div class="calc-mode-switch">
+                <button onclick="setCalcMode('simple')" class="active-mode">بسيطة</button>
+                <button onclick="setCalcMode('scientific')">علمية 🧬</button>
+            </div>
+            <div class="calculator">
+                <input type="text" id="calc-display" readonly>
+                <div class="calc-keys" id="simple-keys">
+                    <button onclick="appendCalc('7')">7</button><button onclick="appendCalc('8')">8</button><button
+                        onclick="appendCalc('9')">9</button><button onclick="chooseOp('/')" class="op-btn">÷</button>
+                    <button onclick="appendCalc('4')">4</button><button onclick="appendCalc('5')">5</button><button
+                        onclick="appendCalc('6')">6</button><button onclick="chooseOp('*')" class="op-btn">×</button>
+                    <button onclick="appendCalc('1')">1</button><button onclick="appendCalc('2')">2</button><button
+                        onclick="appendCalc('3')">3</button><button onclick="chooseOp('-')" class="op-btn">-</button>
+                    <button onclick="appendCalc('0')">0</button><button onclick="appendCalc('.')">.</button><button
+                        onclick="calculate()" class="equal-btn">=</button><button onclick="chooseOp('+')"
+                        class="op-btn">+</button>
+                    <button onclick="clearCalc()" class="clear-btn">C</button>
+                </div>
+                <div class="calc-keys hidden" id="scientific-keys">
+                    <!-- Scientific Extra Keys -->
+                    <button onclick="calcFunc('sin')">sin</button><button onclick="calcFunc('cos')">cos</button><button
+                        onclick="calcFunc('tan')">tan</button><button onclick="calcFunc('log')">log</button>
+                    <button onclick="appendCalc('(')">(</button><button onclick="appendCalc(')')">)</button><button
+                        onclick="calcFunc('sqrt')">√</button><button onclick="calcFunc('pow')">^</button>
+                    <!-- Standard Keys Repetition for Layout -->
+                    <button onclick="appendCalc('7')">7</button><button onclick="appendCalc('8')">8</button><button
+                        onclick="appendCalc('9')">9</button><button onclick="chooseOp('/')" class="op-btn">÷</button>
+                    <button onclick="appendCalc('4')">4</button><button onclick="appendCalc('5')">5</button><button
+                        onclick="appendCalc('6')">6</button><button onclick="chooseOp('*')" class="op-btn">×</button>
+                    <button onclick="appendCalc('1')">1</button><button onclick="appendCalc('2')">2</button><button
+                        onclick="appendCalc('3')">3</button><button onclick="chooseOp('-')" class="op-btn">-</button>
+                    <button onclick="appendCalc('0')">0</button><button onclick="appendCalc('.')">.</button><button
+                        onclick="calculate()" class="equal-btn">=</button><button onclick="chooseOp('+')"
+                        class="op-btn">+</button>
+                    <button onclick="clearCalc()" class="clear-btn" style="width:100%">CLEAR</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stopwatch Section -->
+        <section id="stopwatch-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>⏱️ ساعة الإيقاف</h2>
+            <div class="timer-display" id="timer-display">00:00:00</div>
+            <div class="timer-controls">
+                <button onclick="startTimer()" class="action-btn" style="background:#2ecc71">ابدأ</button>
+                <button onclick="stopTimer()" class="action-btn" style="background:#e74c3c">توقف</button>
+                <button onclick="resetTimer()" class="action-btn" style="background:#95a5a6">تصفير</button>
+            </div>
         </section>
 
         <div id="global-loading" class="hidden overlay-loading">

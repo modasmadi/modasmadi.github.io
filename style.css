@@ -308,3 +308,109 @@ textarea {
         transform: translateY(0);
     }
 }
+
+/* Calculator Styles */
+.calc-mode-switch {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+    gap: 10px;
+}
+
+.calc-mode-switch button {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #ccc;
+    padding: 5px 15px;
+    border-radius: 15px;
+    cursor: pointer;
+}
+
+.calc-mode-switch button.active-mode {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+    box-shadow: 0 0 10px var(--primary);
+}
+
+.calculator {
+    background: rgba(0, 0, 0, 0.4);
+    padding: 15px;
+    border-radius: 15px;
+}
+
+#calc-display {
+    text-align: right;
+    font-size: 2rem;
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.6);
+    border: none;
+    color: #fdcb6e;
+    letter-spacing: 2px;
+}
+
+.calc-keys {
+    display: grid;
+    gap: 8px;
+}
+
+#simple-keys {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+#scientific-keys {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.calc-keys button {
+    padding: 15px;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.calc-keys button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.calc-keys .op-btn {
+    background: rgba(162, 155, 254, 0.3);
+    color: #fdcb6e;
+}
+
+.calc-keys .equal-btn {
+    background: var(--success, #00b894);
+    grid-column: span 2;
+}
+
+.calc-keys .clear-btn {
+    background: var(--danger, #ff7675);
+    color: white;
+}
+
+/* Stopwatch Styles */
+.timer-display {
+    font-size: 4rem;
+    font-weight: 800;
+    text-align: center;
+    margin: 30px 0;
+    font-family: monospace;
+    color: #fdcb6e;
+    text-shadow: 0 0 20px rgba(253, 203, 110, 0.4);
+}
+
+.timer-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.timer-controls button {
+    width: auto;
+    padding: 10px 20px;
+    margin: 0;
+}
