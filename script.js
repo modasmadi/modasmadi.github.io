@@ -9,7 +9,7 @@
 // ==========================================
 const CONFIG = {
     GROQ_API_KEY: "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",
-    GEMINI_API_KEY: "AIzaSyDjZZAhl0kh87BQGGxHB2rgwS1NCs16A9c",
+    GEMINI_API_KEY: "AIzaSyDgf9hrOc799_FhHffMqXXsA_rOyJdQESM",
     MODEL: "llama-3.3-70b-versatile",
     MAX_TOKENS: 4096,
     STORAGE_KEY: "mind_ai_chats_v3",
