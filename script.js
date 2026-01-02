@@ -270,23 +270,22 @@ const GEMINI_API_KEY = "AIzaSyCO3_GJso855AiYzwVpkG5oMOUi82ED8cs";
 let chatHistory = [];
 let currentImageBase64 = null;
 
-// Hook into openTool to clear chat input when opening
+// Hook into openTool 
 const originalOpenTool = window.openTool;
 window.openTool = function (name) {
     if (originalOpenTool) originalOpenTool(name);
-    // You can clear chat or keep history here. Kept history for now.
 };
 
 window.handleImageUpload = function (input) {
     const file = input.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = function (e) {
-        currentImageBase64 = e.target.result.split(',')[1]; // Remove data:image/png;base64,
+        currentImageBase64 = e.target.result.split(',')[1];
         const prev = document.getElementById('preview-img');
-        prev.src = e.target.result;
-        document.getElementById('image-preview').classList.remove('hidden');
+        if (prev) prev.src = e.target.result;
+        const div = document.getElementById('image-preview');
+        if (div) div.classList.remove('hidden');
     };
     reader.readAsDataURL(file);
 };
@@ -298,7 +297,10 @@ window.clearImage = function () {
 };
 
 window.handleEnter = function (e) {
-    if (e.key === 'Enter') sendChatMessage();
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendChatMessage();
+    }
 };
 
 window.sendChatMessage = async function () {
@@ -318,7 +320,7 @@ window.sendChatMessage = async function () {
     if (currentImageBase64) {
         parts.push({
             inline_data: {
-                mime_type: "image/jpeg", // Assuming jpeg/png compatible
+                mime_type: "image/jpeg",
                 data: currentImageBase64
             }
         });
@@ -341,36 +343,51 @@ window.sendChatMessage = async function () {
 
         const data = await response.json();
 
-        // Remove Loading
-        document.getElementById(loadingId).remove();
+        // Remove Loading div if it exists
+        const loadDiv = document.getElementById(loadingId);
+        if (loadDiv) loadDiv.remove();
 
         if (data.error) throw new Error(data.error.message);
+        if (!data.candidates || !data.candidates[0].content) throw new Error("لا يوجد رد من الخادم");
 
         const aiText = data.candidates[0].content.parts[0].text;
         appendMessage({ role: 'model', text: aiText });
 
     } catch (e) {
-        document.getElementById(loadingId).remove();
-        appendMessage({ role: 'model', text: "عذراً، حدث خطأ: " + e.message });
+        const loadDiv = document.getElementById(loadingId);
+        if (loadDiv) loadDiv.remove();
+        appendMessage({ role: 'model', text: "🚫 عذراً، حدث خطأ: " + e.message });
+        console.error("Gemini Error:", e);
     }
 };
 
 function appendMessage(msg) {
     const chat = document.getElementById('chat-messages');
+    if (!chat) return;
+
     const div = document.createElement('div');
     div.className = `message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`;
 
-    let contentHtml = "";
-    if (msg.image) contentHtml += `<img src="${msg.image}" style="max-width:200px; display:block; margin-bottom:5px;">`;
+    let avatarInfo = msg.role === 'user' ? '<div class="msg-avatar">👤</div>' : '<div class="msg-avatar">🤖</div>';
 
+    let contentHtml = "";
+    if (msg.image) contentHtml += `<img src="${msg.image}" style="max-width:200px; display:block; margin-bottom:10px; border-radius:8px;">`;
+
+    // Use marked if available, else text
     if (msg.role === 'model') {
-        // Use marked.js if available, else plain
-        contentHtml += (typeof marked !== 'undefined') ? marked.parse(msg.text) : msg.text;
+        if (typeof marked !== 'undefined') {
+            try { contentHtml += marked.parse(msg.text); } catch (err) { contentHtml += msg.text; }
+        } else {
+            contentHtml += msg.text.replace(/\n/g, '<br>');
+        }
     } else {
-        contentHtml += msg.text;
+        contentHtml += msg.text; // User text is simple
     }
 
-    div.innerHTML = `<div class="msg-content">${contentHtml}</div>`;
+    // Structure depends on CSS, here we follow the ChatGPT style structure
+    if (msg.role === 'ai-message') { /* handled by class */ }
+
+    div.innerHTML = `${avatarInfo}<div class="msg-content">${contentHtml}</div>`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
@@ -381,8 +398,9 @@ function appendLoading() {
     const div = document.createElement('div');
     div.id = id;
     div.className = 'message ai-message';
-    div.innerHTML = `<div class="msg-content"><i class="fa-solid fa-circle-notch fa-spin"></i> جارِ الكتابة...</div>`;
+    div.innerHTML = `<div class="msg-avatar">🤖</div><div class="msg-content"><i class="fa-solid fa-circle-notch fa-spin"></i> جارِ الكتابة...</div>`;
     chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
     return id;
 }
+```
