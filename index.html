@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>البلورة السحرية AI 🔮</title>
+    <meta name="description"
+        content="اكتشف مستقبلك، حلل شخصيتك، واعرف نسبة حبك بالذكاء الاصطناعي. جرب البلورة السحرية الآن!">
+
+    <!-- Social Sharing (Open Graph) -->
+    <meta property="og:title" content="🔮 البلورة السحرية: اكتشف خبايا مستقبلك وشخصيتك!">
+    <meta property="og:description"
+        content="هل شريكك يحبك؟ متى ستصبح غنياً؟ ماذا يعني حلمك؟ الذكاء الاصطناعي يجيبك الآن.">
+    <meta property="og:image" content="preview.png">
+    <meta property="og:url" content="https://cute-bunny-11a34f.netlify.app/">
+    <meta property="og:type" content="website">
+
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;500;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="stars"></div>
+    <div class="twinkling"></div>
+
+    <div class="container main-container">
+        <header>
+            <div class="logo-icon">🔮</div>
+            <h1>البلورة السحرية <span class="ai-badge">AI</span></h1>
+            <p>اكتشف خبايا مستقبلك، شخصيتك، وعلاقاتك</p>
+        </header>
+
+        <!-- Main Dashboard -->
+        <main id="dashboard" class="grid-menu">
+            <div class="card glass-card" onclick="openSection('love')">
+                <div class="icon">❤️</div>
+                <h3>مقياس الحب</h3>
+                <p>نسبة التوافق العاطفي</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('money')">
+                <div class="icon">💰</div>
+                <h3>متى سأصبح غنياً؟</h3>
+                <p>توقع مستقبلك المالي</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('dream')">
+                <div class="icon">🌙</div>
+                <h3>مفسر الأحلام</h3>
+                <p>كشف خبايا المنام</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('personality')">
+                <div class="icon">🧠</div>
+                <h3>تحليل الشخصية</h3>
+                <p>أسرار اسمك</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('luck')">
+                <div class="icon">🍀</div>
+                <h3>رسالة الحظ</h3>
+                <p>رسالة الكون لك</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('decision')">
+                <div class="icon">⚖️</div>
+                <h3>محكمة القرار</h3>
+                <p>محتار؟ دعنا نقرر لك</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('baby')">
+                <div class="icon">👶</div>
+                <h3>اسم طفلي</h3>
+                <p>اقتراح اسم مولودك</p>
+            </div>
+            <div class="card glass-card" onclick="openSection('animal')">
+                <div class="icon">🦁</div>
+                <h3>حيوانك الروحي</h3>
+                <p>ماذا تشبه شخصيتك؟</p>
+            </div>
+        </main>
+
+        <!-- Sections -->
+
+        <!-- Love Section -->
+        <section id="love-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>❤️ مقياس الحب الحقيقي</h2>
+            <input type="text" id="name1" placeholder="اسمك">
+            <input type="text" id="name2" placeholder="اسم الشريك">
+            <button class="action-btn" onclick="calculateLove()">احسب التوافق</button>
+            <div id="love-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Personality Section -->
+        <section id="personality-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>🧠 تحليل الشخصية العميق</h2>
+            <input type="text" id="p-name" placeholder="اكتب اسمك الثلاثي">
+            <button class="action-btn" onclick="analyzePersonality()">حلل شخصيتي</button>
+            <div id="personality-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Dream Section -->
+        <section id="dream-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>🌙 مفسر الأحلام</h2>
+            <textarea id="dreamInput" placeholder="رأيت في منامي..."></textarea>
+            <button class="action-btn" onclick="interpretDream()">فسّر الحلم</button>
+            <div id="dream-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Luck Section -->
+        <section id="luck-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>🍀 رسالة الحظ اليومية</h2>
+            <p>اضغط لاستلام رسالتك الكونية...</p>
+            <div class="crystal-ball-wrapper" onclick="getLuck()">
+                <div class="crystal-ball-lg"></div>
+            </div>
+            <div id="luck-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Money Section -->
+        <section id="money-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>💰 متى سأصبح غنياً؟</h2>
+            <p>دع الذكاء الاصطناعي يحلل طالك المالي 🤑</p>
+            <input type="text" id="money-name" placeholder="اسمك">
+            <button class="action-btn" onclick="predictMoney()">كشف المستقبل المالي</button>
+            <div id="money-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Decision Section -->
+        <section id="decision-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>⚖️ محكمة القرار</h2>
+            <p>محتار في أمر؟ اكتبه وسنقرر لك!</p>
+            <textarea id="decision-input" placeholder="هل أشتري سيارة جديدة؟ هل أسافر؟"></textarea>
+            <button class="action-btn" onclick="makeDecision()">احكم الآن</button>
+            <div id="decision-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Baby Section -->
+        <section id="baby-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>👶 اقتراح اسم طفلي</h2>
+            <p>ولد أم بنت؟ سنختار لك الاسم المثالي.</p>
+            <select id="baby-gender">
+                <option value="boy">ولد 👦</option>
+                <option value="girl">بنت 👧</option>
+            </select>
+            <input type="text" id="parent-name" placeholder="اسم الأب (اختياري)">
+            <button class="action-btn" onclick="suggestBabyName()">اقترح اسماً</button>
+            <div id="baby-result" class="result-box hidden"></div>
+        </section>
+
+        <!-- Animal Section -->
+        <section id="animal-section" class="hidden tool-section">
+            <button class="back-btn" onclick="goHome()">🔙 عودة</button>
+            <h2>🦁 حيوانك الروحي</h2>
+            <p>الرمز الذي يعبر عن قوة شخصيتك</p>
+            <input type="text" id="animal-name" placeholder="اسمك">
+            <button class="action-btn" onclick="findSpiritAnimal()">اظهار حيواني</button>
+            <div id="animal-result" class="result-box hidden"></div>
+        </section>
+
+        <div id="global-loading" class="hidden overlay-loading">
+            <div class="spinner"></div>
+            <p>الذكاء الاصطناعي يفكر...</p>
+        </div>
+
+        <footer>
+            <p>&copy; 2025 Magic Crystal Ball AI</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
