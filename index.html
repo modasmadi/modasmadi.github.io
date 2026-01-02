@@ -17,7 +17,6 @@
     <div class="stars"></div>
     <div class="twinkling"></div>
 
-    <!-- App Container -->
     <div class="app-container">
 
         <header class="app-header">
@@ -31,8 +30,14 @@
         </header>
 
         <div id="pages-container">
-            <!-- Pages Content (No Change) -->
+
+            <!-- HOME -->
             <div id="page-home" class="page active-page">
+                <div class="daily-quote-box">
+                    <div class="quote-header"><i class="fa-solid fa-quote-right"></i> حكمة اليوم</div>
+                    <p id="daily-quote-text" class="quote-text">جارِ تحميل الحكمة...</p>
+                </div>
+
                 <h2 class="section-title">✨ اكتشف المجهول</h2>
                 <div class="grid-menu">
                     <div class="glass-card" onclick="openTool('love')"><i class="fa-solid fa-heart icon"
@@ -58,9 +63,21 @@
                 </div>
             </div>
 
+            <!-- MIND -->
             <div id="page-mind" class="page">
                 <h2 class="section-title">🧠 العقل والنفس</h2>
                 <div class="grid-menu">
+                    <div class="glass-card" onclick="openTool('breathing')"><i class="fa-solid fa-lungs icon"
+                            style="color:#74b9ff;"></i>
+                        <h3>تمرين التنفس</h3>
+                    </div>
+
+                    <!-- New Gratitude Journal -->
+                    <div class="glass-card" onclick="openTool('gratitude')"><i class="fa-solid fa-book-heart icon"
+                            style="color:#fd79a8;"></i>
+                        <h3>مذكرة الامتنان</h3>
+                    </div>
+
                     <div class="glass-card" onclick="openTool('dream')"><i class="fa-solid fa-moon icon"
                             style="color:#a29bfe;"></i>
                         <h3>مفسر الأحلام</h3>
@@ -76,6 +93,7 @@
                 </div>
             </div>
 
+            <!-- TOOLS -->
             <div id="page-tools" class="page">
                 <h2 class="section-title">🛠️ أدوات ذكية</h2>
                 <div class="grid-menu">
@@ -94,6 +112,7 @@
                 </div>
             </div>
 
+            <!-- GYM -->
             <div id="page-gym" class="page">
                 <h2 class="section-title">💪 النادي واللياقة</h2>
                 <div class="gym-panel">
@@ -118,16 +137,36 @@
                 </div>
             </div>
 
+            <!-- GOALS (Upgraded to DAILY DASHBOARD) -->
             <div id="page-goals" class="page">
-                <h2 class="section-title">✅ إنجازاتي اليومية</h2>
+                <h2 class="section-title">📅 يومي (Dashboard 24h)</h2>
+
+                <!-- Water Tracker -->
+                <div class="dashboard-card">
+                    <h3>💧 تذكير الماء (<span id="water-count">0</span>/8)</h3>
+                    <div class="water-grid" id="water-grid">
+                        <!-- Cups added by JS -->
+                    </div>
+                </div>
+
+                <!-- Habits Tracker -->
+                <div class="dashboard-card">
+                    <h3>✨ عاداتي اليومية</h3>
+                    <ul id="habits-list" class="habits-list">
+                        <!-- Habits added by JS -->
+                    </ul>
+                </div>
+
+                <!-- Original To-Do -->
+                <h3 style="margin-top:20px; color:var(--text-sec)">📝 مهام أخرى</h3>
                 <div class="goals-container">
                     <div class="add-goal-box">
-                        <input type="text" id="new-goal-text" placeholder="ما هدفك لليوم؟">
+                        <input type="text" id="new-goal-text" placeholder="مهمة جديدة...">
                         <button onclick="addGoal()" class="plus-btn"><i class="fa-solid fa-plus"></i></button>
                     </div>
                     <ul id="goals-list"></ul>
                     <div id="empty-state" class="empty-goals">
-                        <p>يومك صفحة بيضاء.. اكتب إنجازك الأول! 🚀</p>
+                        <p>قائمتك فارغة!</p>
                     </div>
                 </div>
             </div>
@@ -138,8 +177,8 @@
                     class="fa-solid fa-wand-magic-sparkles"></i><span>ترفيه</span></div>
             <div class="nav-item" onclick="switchPage('mind')"><i class="fa-solid fa-brain"></i><span>النفس</span></div>
             <div class="nav-item" onclick="switchPage('goals')">
-                <div class="fab-circle"><i class="fa-solid fa-check"></i></div>
-            </div>
+                <div class="fab-circle"><i class="fa-solid fa-calendar-check"></i></div>
+            </div> <!-- Changed Icon -->
             <div class="nav-item" onclick="switchPage('gym')"><i class="fa-solid fa-dumbbell"></i><span>الجيم</span>
             </div>
             <div class="nav-item" onclick="switchPage('tools')"><i class="fa-solid fa-toolbox"></i><span>أدوات</span>
@@ -162,76 +201,78 @@
     <!-- TEMPLATES -->
     <div id="templates" style="display: none !important;">
 
-        <!-- Calculator (Authentic LTR Layout) -->
-        <div id="tpl-calculator">
-            <div class="ios-calc-wrapper" dir="ltr"> <!-- FORCE LTR FOR CORRECT LAYOUT -->
-                <div class="ios-calc-container">
-                    <div class="calc-display-area">
-                        <input type="text" id="calc-display" readonly value="0">
-                    </div>
-                    <div class="ios-keys">
-                        <!-- Row 1 -->
-                        <button class="btn-grey" onclick="clearCalc()">AC</button>
-                        <button class="btn-grey" onclick="toggleSign()">+/-</button>
-                        <button class="btn-grey" onclick="percent()">%</button>
-                        <button class="btn-orange" onclick="chooseOp('/')">÷</button>
-
-                        <!-- Row 2 -->
-                        <button class="btn-dark" onclick="appendCalc('7')">7</button>
-                        <button class="btn-dark" onclick="appendCalc('8')">8</button>
-                        <button class="btn-dark" onclick="appendCalc('9')">9</button>
-                        <button class="btn-orange" onclick="chooseOp('*')">×</button>
-
-                        <!-- Row 3 -->
-                        <button class="btn-dark" onclick="appendCalc('4')">4</button>
-                        <button class="btn-dark" onclick="appendCalc('5')">5</button>
-                        <button class="btn-dark" onclick="appendCalc('6')">6</button>
-                        <button class="btn-orange" onclick="chooseOp('-')">-</button>
-
-                        <!-- Row 4 -->
-                        <button class="btn-dark" onclick="appendCalc('1')">1</button>
-                        <button class="btn-dark" onclick="appendCalc('2')">2</button>
-                        <button class="btn-dark" onclick="appendCalc('3')">3</button>
-                        <button class="btn-orange" onclick="chooseOp('+')">+</button>
-
-                        <!-- Row 5 -->
-                        <button class="btn-dark span-2" onclick="appendCalc('0')">0</button>
-                        <button class="btn-dark" onclick="appendCalc('.')">.</button>
-                        <button class="btn-orange" onclick="calculate()">=</button>
-                    </div>
-                </div>
+        <!-- Gratitude Journal -->
+        <div id="tpl-gratitude">
+            <h2>📔 مذكرة الامتنان</h2>
+            <p style="color:var(--text-sec); font-size:0.9rem;">اكتب 3 أشياء أسعدتك اليوم:</p>
+            <div class="gratitude-box">
+                <input type="text" class="gratitude-input" placeholder="1. ..." id="grat-1">
+                <input type="text" class="gratitude-input" placeholder="2. ..." id="grat-2">
+                <input type="text" class="gratitude-input" placeholder="3. ..." id="grat-3">
+                <button class="action-btn" onclick="saveGratitude()">حفظ في ذكرياتي</button>
+            </div>
+            <div class="journal-history">
+                <h3>📜 ذكريات سابقة</h3>
+                <div id="gratitude-history"></div>
             </div>
         </div>
 
-        <!-- Focus Timer -->
+        <!-- Previous Templates -->
+        <div id="tpl-breathing">
+            <h2>🌬️ تمرين التنفس</h2>
+            <div class="breathing-container">
+                <div id="breath-circle" class="breath-circle"></div>
+                <h2 id="breath-text" class="breath-text">جاهز؟</h2><button id="breath-btn" class="action-btn"
+                    onclick="toggleBreathing()">ابدأ التمرين</button>
+            </div>
+        </div>
+        <div id="tpl-calculator">
+            <div class="ios-calc-wrapper" dir="ltr">
+                <div class="ios-calc-container">
+                    <div class="calc-display-area"><input type="text" id="calc-display" readonly value="0"></div>
+                    <div class="ios-keys"><button class="btn-grey" onclick="clearCalc()">AC</button><button
+                            class="btn-grey" onclick="toggleSign()">+/-</button><button class="btn-grey"
+                            onclick="percent()">%</button><button class="btn-orange"
+                            onclick="chooseOp('/')">÷</button><button class="btn-dark"
+                            onclick="appendCalc('7')">7</button><button class="btn-dark"
+                            onclick="appendCalc('8')">8</button><button class="btn-dark"
+                            onclick="appendCalc('9')">9</button><button class="btn-orange"
+                            onclick="chooseOp('*')">×</button><button class="btn-dark"
+                            onclick="appendCalc('4')">4</button><button class="btn-dark"
+                            onclick="appendCalc('5')">5</button><button class="btn-dark"
+                            onclick="appendCalc('6')">6</button><button class="btn-orange"
+                            onclick="chooseOp('-')">-</button><button class="btn-dark"
+                            onclick="appendCalc('1')">1</button><button class="btn-dark"
+                            onclick="appendCalc('2')">2</button><button class="btn-dark"
+                            onclick="appendCalc('3')">3</button><button class="btn-orange"
+                            onclick="chooseOp('+')">+</button><button class="btn-dark span-2"
+                            onclick="appendCalc('0')">0</button><button class="btn-dark"
+                            onclick="appendCalc('.')">.</button><button class="btn-orange"
+                            onclick="calculate()">=</button></div>
+                </div>
+            </div>
+        </div>
         <div id="tpl-focus">
             <h2>⏳ مؤقت التركيز</h2>
             <div class="focus-timer">
-                <div class="quick-select">
-                    <button class="quick-btn" onclick="setFocusTime(25)">25 د</button>
-                    <button class="quick-btn" onclick="setFocusTime(45)">45 د</button>
-                    <button class="quick-btn" onclick="setFocusTime(60)">60 د</button>
-                </div>
-                <input type="number" id="focus-input" placeholder="وقت مخصص" style="text-align:center;">
+                <div class="quick-select"><button class="quick-btn" onclick="setFocusTime(25)">25 د</button><button
+                        class="quick-btn" onclick="setFocusTime(45)">45 د</button><button class="quick-btn"
+                        onclick="setFocusTime(60)">60 د</button></div><input type="number" id="focus-input"
+                    placeholder="وقت مخصص" style="text-align:center;">
                 <div id="focus-display" class="focus-display">00:00</div>
-                <div class="timer-controls">
-                    <button onclick="startFocus()" class="action-btn" style="background:#0984e3">ابدأ التركيز</button>
-                    <button onclick="stopFocus()" class="action-btn" style="background:#e74c3c">إيقاف</button>
-                </div>
+                <div class="timer-controls"><button onclick="startFocus()" class="action-btn"
+                        style="background:#0984e3">ابدأ التركيز</button><button onclick="stopFocus()" class="action-btn"
+                        style="background:#e74c3c">إيقاف</button></div>
                 <div class="noise-controls">
-                    <div style="text-align:center;">
-                        <button class="noise-btn" id="btn-rain" onclick="toggleNoise('rain')"><i
-                                class="fa-solid fa-cloud-rain"></i></button><span>مطر</span>
-                    </div>
-                    <div style="text-align:center;">
-                        <button class="noise-btn" id="btn-fire" onclick="toggleNoise('fire')"><i
-                                class="fa-solid fa-fire"></i></button><span>نار</span>
+                    <div style="text-align:center;"><button class="noise-btn" id="btn-rain"
+                            onclick="toggleNoise('rain')"><i
+                                class="fa-solid fa-cloud-rain"></i></button><span>مطر</span></div>
+                    <div style="text-align:center;"><button class="noise-btn" id="btn-fire"
+                            onclick="toggleNoise('fire')"><i class="fa-solid fa-fire"></i></button><span>نار</span>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- Original Templates -->
         <div id="tpl-love">
             <h2>❤️ الحب</h2><input type="text" id="name1" placeholder="اسمك"><input type="text" id="name2"
                 placeholder="الشريك"><button class="action-btn" onclick="calculateLove()">احسب</button>
@@ -277,15 +318,13 @@
                 onclick="findSpiritAnimal()">اكتشف</button>
             <div id="animal-result" class="result-box hidden"></div>
         </div>
-
         <div id="tpl-stopwatch">
             <h2>⏱️ ساعة الإيقاف</h2>
             <div class="timer-display" id="timer-display">00:00:00</div>
-            <div class="timer-controls">
-                <button onclick="startTimer()" class="action-btn" style="background:#2ecc71">Start</button>
-                <button onclick="stopTimer()" class="action-btn" style="background:#e74c3c">Stop</button>
-                <button onclick="resetTimer()" class="action-btn" style="background:#95a5a6">Reset</button>
-            </div>
+            <div class="timer-controls"><button onclick="startTimer()" class="action-btn"
+                    style="background:#2ecc71">Start</button><button onclick="stopTimer()" class="action-btn"
+                    style="background:#e74c3c">Stop</button><button onclick="resetTimer()" class="action-btn"
+                    style="background:#95a5a6">Reset</button></div>
         </div>
     </div>
 
