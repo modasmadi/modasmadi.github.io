@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 
 <body>
@@ -127,9 +128,9 @@
                             style="color:#00b894;"></i>
                         <h3>تمرين التنفس</h3>
                     </div>
-                    <div class="glass-card span-2" onclick="openTool('ai-journal')"><i
-                            class="fa-solid fa-wand-magic-sparkles icon" style="color:#a29bfe;"></i>
-                        <h3>المذكرة الذكية (AI)</h3>
+                    <div class="glass-card span-2" onclick="openTool('ai-chat')"><i class="fa-solid fa-robot icon"
+                            style="color:#a29bfe;"></i>
+                        <h3>المساعد الذكي (AI)</h3>
                     </div>
                 </div>
             </div>
@@ -254,46 +255,49 @@
                     style="background:#e74c3c">Stop</button><button onclick="resetTimer()" class="action-btn"
                     style="background:#95a5a6">Reset</button></div>
         </div>
-    </div>
 
-    <div id="tpl-breathing">
-        <h2>🧘‍♂️ تمرين التنفس</h2>
-        <div class="breathing-container">
-            <div class="circle-container">
-                <div class="circle"></div>
-                <div class="gradient-circle"></div>
-                <p id="breath-text">جاهز؟</p>
+        <div id="tpl-breathing">
+            <h2>🧘‍♂️ تمرين التنفس</h2>
+            <div class="breathing-container">
+                <div class="circle-container">
+                    <div class="circle"></div>
+                    <div class="gradient-circle"></div>
+                    <p id="breath-text">جاهز؟</p>
+                </div>
+                <div class="breath-instruction" id="breath-instruction">استرخي وتنفس بعمق...</div>
+                <button class="action-btn" id="breath-btn" onclick="toggleBreathing()">ابدأ التمرين</button>
             </div>
-            <div class="breath-instruction" id="breath-instruction">استرخي وتنفس بعمق...</div>
-            <button class="action-btn" id="breath-btn" onclick="toggleBreathing()">ابدأ التمرين</button>
-        </div>
-    </div>
-
-    <div id="tpl-ai-journal">
-        <h2>🧠 المذكرة الذكية</h2>
-
-        <div id="ai-setup" class="hidden">
-            <p class="hint-text">لتفعيل الذكاء الاصطناعي، نحتاج لمفتاح (API Key) من Google. هو مجاني وآمن (يحفظ في جهازك
-                فقط).</p>
-            <input type="password" id="gemini-key-input" placeholder="لصق مفتاح Gemini API هنا">
-            <button class="action-btn" onclick="saveApiKey()">حفظ وتفعيل</button>
-            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="small-link">احصل على مفتاح مجاني من
-                هنا ↗</a>
         </div>
 
-        <div id="ai-main">
-            <p class="hint-text">اكتب كل ما في خاطرك، وسيقوم الذكاء الاصطناعي بتحليله..</p>
-            <textarea id="journal-input" placeholder="كيف تشعر اليوم؟ ماذا حدث معك؟..."></textarea>
-            <button class="action-btn" id="analyze-btn" onclick="analyzeJournal()">✨ حلل مشاعري</button>
-
-            <div id="ai-loading" class="hidden" style="margin-top:20px; text-align:center;">
-                <div class="spinner"></div>
-                <p>جارِ الاتصال بـ Gemini...</p>
+        <!-- NEW: AI Chat Template -->
+        <div id="tpl-ai-chat">
+            <div class="chat-header">
+                <h2>🤖 المساعد الذكي</h2>
+                <span class="status-dot"></span>
             </div>
 
-            <div id="ai-result" class="result-box hidden"></div>
+            <div id="chat-messages" class="chat-messages">
+                <div class="message ai-message">
+                    <div class="msg-content">أهلاً بك! أنا مساعدك الذكي. يمكنك سؤالي عن أي شيء أو إرسال صور لتحليلها.
+                        كيف أساعدك اليوم؟</div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div id="image-preview" class="hidden">
+                    <img id="preview-img" src="" alt="preview">
+                    <button onclick="clearImage()" class="remove-img">✕</button>
+                </div>
+                <div class="input-row">
+                    <label for="file-upload" class="attach-btn"><i class="fa-solid fa-paperclip"></i></label>
+                    <input type="file" id="file-upload" accept="image/*" class="hidden"
+                        onchange="handleImageUpload(this)">
+                    <input type="text" id="chat-input" placeholder="اكتب رسالتك هنا..." onkeypress="handleEnter(event)">
+                    <button class="send-btn" onclick="sendChatMessage()"><i
+                            class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
         </div>
-    </div>
 
     </div>
 

@@ -263,84 +263,126 @@ window.closeTool = function () {
     if (originalCloseTool) originalCloseTool();
 };
 
-// --- AI JOURNAL (Gemini) ---
-const GEMINI_API_KEY = "AIzaSyCO3_GJso855AiYzwVpkG5oMOUi82ED8cs"; // Hardcoded by User Request
+// --- GENERAL AI CHAT (ChatGPT-like) ---
+const GEMINI_API_KEY = "AIzaSyCO3_GJso855AiYzwVpkG5oMOUi82ED8cs";
 
-window.checkApiKey = function () {
-    // Always consider it setup since we have the key
-    const setup = document.getElementById('ai-setup');
-    const main = document.getElementById('ai-main');
-    if (!setup || !main) return;
+// State for Chat
+let chatHistory = [];
+let currentImageBase64 = null;
 
-    // Hide setup, show main immediately
-    setup.classList.add('hidden');
-    main.classList.remove('hidden');
-};
-
-window.saveApiKey = function () {
-    // No longer needed, but kept to prevent errors if clicked
-    alert("المفتاح مضاف مسبقاً في الكود!");
-};
-
-// Hook into openTool to check API key when opening journal
+// Hook into openTool to clear chat input when opening
 const originalOpenTool = window.openTool;
 window.openTool = function (name) {
     if (originalOpenTool) originalOpenTool(name);
-    if (name === 'ai-journal') {
-        setTimeout(checkApiKey, 100);
-    }
+    // You can clear chat or keep history here. Kept history for now.
 };
 
-window.analyzeJournal = async function () {
-    const text = document.getElementById('journal-input').value;
-    if (!text || text.length < 5) { alert("اكتب شيئاً أكثر تفصيلاً..."); return; }
+window.handleImageUpload = function (input) {
+    const file = input.files[0];
+    if (!file) return;
 
-    const btn = document.getElementById('analyze-btn');
-    const loading = document.getElementById('ai-loading');
-    const result = document.getElementById('ai-result');
-    // Uses the hardcoded key
-    const apiKey = GEMINI_API_KEY;
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        currentImageBase64 = e.target.result.split(',')[1]; // Remove data:image/png;base64,
+        const prev = document.getElementById('preview-img');
+        prev.src = e.target.result;
+        document.getElementById('image-preview').classList.remove('hidden');
+    };
+    reader.readAsDataURL(file);
+};
 
-    btn.classList.add('hidden');
-    loading.classList.remove('hidden');
-    result.classList.add('hidden');
+window.clearImage = function () {
+    currentImageBase64 = null;
+    document.getElementById('file-upload').value = "";
+    document.getElementById('image-preview').classList.add('hidden');
+};
 
-    const prompt = `
-    أنت طبيب نفسي ومستشار حياة إيجابي.
-    المستخدم كتب هذا في مذكرته: "${text}"
-    
-    المطلوب منك الرد بتنسيق HTML بسيط (بدون markdown) يحتوي على ثلاثة أقسام:
-    1. <h4>📊 تحليل الحالة:</h4> (وصف قصير جداً لحالته النفسية)
-    2. <h4>💡 نصيحة:</h4> (نصيحة عملية وإيجابية)
-    3. <h4>✨ توكيد يومي:</h4> (جملة قصيرة يكررها)
-    
-    اجعل اللهجة ودودة، مشجعة، وباللغة العربية الفصحى البسيطة.`;
+window.handleEnter = function (e) {
+    if (e.key === 'Enter') sendChatMessage();
+};
+
+window.sendChatMessage = async function () {
+    const input = document.getElementById('chat-input');
+    const text = input.value.trim();
+
+    // Don't send empty unless there's an image
+    if (!text && !currentImageBase64) return;
+
+    // 1. Show User Message
+    appendMessage({ role: 'user', text: text, image: currentImageBase64 ? document.getElementById('preview-img').src : null });
+    input.value = "";
+
+    // 2. Prepare Payload
+    const parts = [];
+    if (text) parts.push({ text: text });
+    if (currentImageBase64) {
+        parts.push({
+            inline_data: {
+                mime_type: "image/jpeg", // Assuming jpeg/png compatible
+                data: currentImageBase64
+            }
+        });
+    }
+
+    // Reset Image after sending
+    clearImage();
+
+    // 3. Show Loading Bubble
+    const loadingId = appendLoading();
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }]
+                contents: [{ parts: parts }]
             })
         });
 
         const data = await response.json();
 
-        if (data.error) {
-            throw new Error(data.error.message);
-        }
+        // Remove Loading
+        document.getElementById(loadingId).remove();
+
+        if (data.error) throw new Error(data.error.message);
 
         const aiText = data.candidates[0].content.parts[0].text;
-        // Clean markdown if present
-        const cleanText = aiText.replace(/```html/g, '').replace(/```/g, '');
+        appendMessage({ role: 'model', text: aiText });
 
-        result.innerHTML = cleanText;
-        result.classList.remove('hidden');
     } catch (e) {
-        alert("حدث خطأ في الاتصال: " + e.message);
-    } finally {
-        loading.classList.add('hidden');
-        btn.classList.remove('hidden');
+        document.getElementById(loadingId).remove();
+        appendMessage({ role: 'model', text: "عذراً، حدث خطأ: " + e.message });
     }
 };
+
+function appendMessage(msg) {
+    const chat = document.getElementById('chat-messages');
+    const div = document.createElement('div');
+    div.className = `message ${msg.role === 'user' ? 'user-message' : 'ai-message'}`;
+
+    let contentHtml = "";
+    if (msg.image) contentHtml += `<img src="${msg.image}" style="max-width:200px; display:block; margin-bottom:5px;">`;
+
+    if (msg.role === 'model') {
+        // Use marked.js if available, else plain
+        contentHtml += (typeof marked !== 'undefined') ? marked.parse(msg.text) : msg.text;
+    } else {
+        contentHtml += msg.text;
+    }
+
+    div.innerHTML = `<div class="msg-content">${contentHtml}</div>`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+}
+
+function appendLoading() {
+    const chat = document.getElementById('chat-messages');
+    const id = 'loading-' + Date.now();
+    const div = document.createElement('div');
+    div.id = id;
+    div.className = 'message ai-message';
+    div.innerHTML = `<div class="msg-content"><i class="fa-solid fa-circle-notch fa-spin"></i> جارِ الكتابة...</div>`;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+    return id;
+}
