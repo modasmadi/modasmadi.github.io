@@ -368,9 +368,10 @@ window.viewGratitudeHistory = function () {
 };
 
 
-// --- AI CHAT LOGIC (Gemini) ---
-const GEMINI_API_KEY = "AIzaSyDjZZAhl0kh87BQGGxHB2rgwS1NCs16A9c";
+// --- AI CHAT LOGIC (Groq - Free & Fast!) ---
+const GROQ_API_KEY = "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";
 let currentImageBase64 = null;
+let chatHistory = [];
 
 // Helper to get elements from modal
 function getChatElement(selector) {
@@ -412,47 +413,45 @@ window.sendChatMessage = async function () {
     if (!input) return;
 
     const text = input.value.trim();
+    if (!text) return;
 
-    if (!text && !currentImageBase64) return;
-
-    const previewImg = getChatElement('#preview-img');
-    appendMessage({ role: 'user', text: text, image: currentImageBase64 && previewImg ? previewImg.src : null });
+    appendMessage({ role: 'user', text: text });
     input.value = "";
+    chatHistory.push({ role: "user", content: text });
 
-    // Prepare data
-    const parts = [];
-    if (text) parts.push({ text: text });
-    if (currentImageBase64) {
-        parts.push({
-            inline_data: {
-                mime_type: "image/jpeg",
-                data: currentImageBase64
-            }
-        });
-    }
-
-    clearImage();
     const loadingId = appendLoading();
 
     try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`, {
+        const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: parts }] })
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${GROQ_API_KEY}`
+            },
+            body: JSON.stringify({
+                model: "llama-3.3-70b-versatile",
+                messages: [
+                    { role: "system", content: "أنت مساعد ذكي ودود اسمك Mind AI. أجب باللغة العربية بشكل مختصر ومفيد." },
+                    ...chatHistory
+                ],
+                max_tokens: 1024,
+                temperature: 0.7
+            })
         });
 
         const data = await response.json();
         removeLoading(loadingId);
 
         if (data.error) throw new Error(data.error.message);
-        if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) throw new Error("لا يوجد رد من الخادم");
+        if (!data.choices || !data.choices[0]) throw new Error("لا يوجد رد");
 
-        const aiText = data.candidates[0].content.parts[0].text;
+        const aiText = data.choices[0].message.content;
+        chatHistory.push({ role: "assistant", content: aiText });
         appendMessage({ role: 'model', text: aiText });
 
     } catch (e) {
         removeLoading(loadingId);
-        appendMessage({ role: 'model', text: "🚫 عذراً، حدث خطأ: " + e.message });
+        appendMessage({ role: 'model', text: "🚫 خطأ: " + e.message });
     }
 };
 
