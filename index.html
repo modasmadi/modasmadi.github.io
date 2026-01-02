@@ -31,7 +31,7 @@
 
         <div id="pages-container">
 
-            <!-- PAGE 1: DASHBOARD (Formerly Goals) -->
+            <!-- PAGE 1: DASHBOARD (Home) -->
             <div id="page-dashboard" class="page active-page">
                 <!-- Daily Quote -->
                 <div class="daily-quote-box">
@@ -67,34 +67,10 @@
                 </div>
             </div>
 
-            <!-- PAGE 2: MIND (Cleaned) -->
-            <div id="page-mind" class="page">
-                <h2 class="section-title">🧠 العقل والنفس</h2>
-                <div class="grid-menu">
-                    <div class="glass-card" onclick="openTool('gratitude')"><i class="fa-solid fa-book-heart icon"
-                            style="color:#fd79a8;"></i>
-                        <h3>مذكرة الامتنان</h3>
-                    </div>
-                    <div class="glass-card" onclick="openTool('dream')"><i class="fa-solid fa-moon icon"
-                            style="color:#a29bfe;"></i>
-                        <h3>مفسر الأحلام</h3>
-                    </div>
-                    <div class="glass-card" onclick="openTool('personality')"><i class="fa-solid fa-fingerprint icon"
-                            style="color:#fab1a0;"></i>
-                        <h3>تحليل الشخصية</h3>
-                    </div>
-                    <div class="glass-card" onclick="openTool('decision')"><i class="fa-solid fa-scale-balanced icon"
-                            style="color:#dfe6e9;"></i>
-                        <h3>محكمة القرار</h3>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PAGE 3: GYM (Expanded) -->
+            <!-- PAGE 2: GYM -->
             <div id="page-gym" class="page">
-                <h2 class="section-title">� النادي واللياقة</h2>
+                <h2 class="section-title">💪 النادي واللياقة</h2>
 
-                <!-- Standard Panels -->
                 <div class="gym-panel">
                     <h3>⚖️ حساب كتلة الجسم (BMI)</h3>
                     <div class="input-group">
@@ -105,7 +81,6 @@
                     <div id="bmi-result" class="result-box hidden"></div>
                 </div>
 
-                <!-- Workout Generator -->
                 <div class="gym-panel">
                     <h3>🏋️‍♂️ جدول تمرين (AI)</h3>
                     <select id="muscle-group">
@@ -120,7 +95,6 @@
                         style="text-align: right; white-space: pre-line;"></div>
                 </div>
 
-                <!-- New Tools Cards -->
                 <div class="grid-menu" style="margin-top: 20px;">
                     <div class="glass-card" onclick="openTool('tdee')"><i class="fa-solid fa-fire-burner icon"
                             style="color:#e67e22;"></i>
@@ -133,7 +107,7 @@
                 </div>
             </div>
 
-            <!-- PAGE 4: TOOLS -->
+            <!-- PAGE 3: TOOLS -->
             <div id="page-tools" class="page">
                 <h2 class="section-title">🛠️ أدوات ذكية</h2>
                 <div class="grid-menu">
@@ -158,12 +132,10 @@
         <nav class="bottom-nav">
             <div class="nav-item active" onclick="switchPage('dashboard')"><i
                     class="fa-solid fa-house"></i><span>يومي</span></div>
-            <div class="nav-item" onclick="switchPage('mind')"><i class="fa-solid fa-brain"></i><span>النفس</span></div>
-            <!-- Center Button -->
+            <!-- Center Button for GYM -->
             <div class="nav-item" onclick="switchPage('gym')">
                 <div class="fab-circle"><i class="fa-solid fa-dumbbell"></i></div>
             </div>
-
             <div class="nav-item" onclick="switchPage('tools')"><i class="fa-solid fa-toolbox"></i><span>أدوات</span>
             </div>
         </nav>
@@ -218,44 +190,7 @@
             <div id="rm-result" class="result-box hidden"></div>
         </div>
 
-        <!-- Gratitude -->
-        <div id="tpl-gratitude">
-            <h2>📔 مذكرة الامتنان</h2>
-            <p style="color:var(--text-sec); font-size:0.9rem;">اكتب 3 أشياء أسعدتك اليوم:</p>
-            <div class="gratitude-box">
-                <input type="text" class="gratitude-input" placeholder="1. ..." id="grat-1">
-                <input type="text" class="gratitude-input" placeholder="2. ..." id="grat-2">
-                <input type="text" class="gratitude-input" placeholder="3. ..." id="grat-3">
-                <button class="action-btn" onclick="saveGratitude()">حفظ</button>
-            </div>
-            <div class="journal-history">
-                <h3>📜 ذكريات سابقة</h3>
-                <div id="gratitude-history"></div>
-            </div>
-        </div>
-
-        <!-- Dreams -->
-        <div id="tpl-dream">
-            <h2>� الأحلام</h2><textarea id="dreamInput" placeholder="حلمت..."></textarea><button class="action-btn"
-                onclick="interpretDream()">تفسير</button>
-            <div id="dream-result" class="result-box hidden"></div>
-        </div>
-
-        <!-- Personality -->
-        <div id="tpl-personality">
-            <h2>🧠 الشخصية</h2><input type="text" id="p-name" placeholder="الاسم"><button class="action-btn"
-                onclick="analyzePersonality()">تحليل</button>
-            <div id="personality-result" class="result-box hidden"></div>
-        </div>
-
-        <!-- Decision -->
-        <div id="tpl-decision">
-            <h2>⚖️ القرار</h2><textarea id="decision-input" placeholder="محتار؟"></textarea><button class="action-btn"
-                onclick="makeDecision()">احكم</button>
-            <div id="decision-result" class="result-box hidden"></div>
-        </div>
-
-        <!-- Tools -->
+        <!-- Tools Templates -->
         <div id="tpl-calculator">
             <div class="ios-calc-wrapper" dir="ltr">
                 <div class="ios-calc-container">
