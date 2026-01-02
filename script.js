@@ -1089,33 +1089,72 @@ async function sendToGroq(chatMessages, currentMessage) {
 }
 
 async function sendToGemini(text, imageBase64) {
-    const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${CONFIG.GEMINI_API_KEY}`,
-        {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{
-                    parts: [
-                        { text: `${getCurrentSystemPrompt()}\n\nالمستخدم: ${text}` },
-                        { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
-                    ]
-                }]
-            })
+    // List of models to try (in order of preference)
+    const GEMINI_MODELS = [
+        'gemini-1.5-flash',      // Most stable, good free tier
+        'gemini-1.5-flash-002',  // Stable version
+        'gemini-2.0-flash',      // Newest but may have quota limits
+        'gemini-1.5-pro'         // Fallback pro model
+    ];
+
+    let lastError = null;
+
+    for (const model of GEMINI_MODELS) {
+        try {
+            console.log(`🔄 Trying model: ${model}`);
+
+            const response = await fetch(
+                `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${CONFIG.GEMINI_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{
+                            parts: [
+                                { text: `${getCurrentSystemPrompt()}\n\nالمستخدم: ${text}` },
+                                { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
+                            ]
+                        }],
+                        generationConfig: {
+                            temperature: 0.7,
+                            maxOutputTokens: 2048
+                        }
+                    })
+                }
+            );
+
+            const data = await response.json();
+
+            // Check for quota/rate limit errors - try next model
+            if (data.error) {
+                const errorMsg = data.error.message?.toLowerCase() || '';
+                if (errorMsg.includes('quota') || errorMsg.includes('rate') || errorMsg.includes('limit') || errorMsg.includes('exceeded')) {
+                    console.log(`⚠️ Model ${model} quota exceeded, trying next...`);
+                    lastError = new Error(`${model}: حد الاستخدام`);
+                    continue; // Try next model
+                }
+                // Other errors - throw immediately
+                throw new Error(data.error.message);
+            }
+
+            if (!data.candidates?.[0]?.content) {
+                console.log(`⚠️ Model ${model} no response, trying next...`);
+                lastError = new Error('لا يوجد رد');
+                continue;
+            }
+
+            console.log(`✅ Success with model: ${model}`);
+            return data.candidates[0].content.parts[0].text;
+
+        } catch (error) {
+            console.log(`❌ Model ${model} failed:`, error.message);
+            lastError = error;
+            // Continue to next model
         }
-    );
-
-    const data = await response.json();
-
-    if (data.error) {
-        throw new Error(data.error.message);
     }
 
-    if (!data.candidates?.[0]?.content) {
-        throw new Error('لا يوجد رد من الخادم');
-    }
-
-    return data.candidates[0].content.parts[0].text;
+    // All models failed
+    throw new Error(lastError?.message || 'جميع الموديلات فشلت. جرب لاحقاً أو تواصل مع الدعم.');
 }
 
 function sendQuickPrompt(text) {
