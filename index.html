@@ -162,34 +162,39 @@
     <!-- TEMPLATES -->
     <div id="templates" style="display: none !important;">
 
-        <!-- Calculator (iOS Authentic) -->
+        <!-- Calculator (Authentic LTR Layout) -->
         <div id="tpl-calculator">
-            <div class="ios-calc-wrapper"> <!-- Dark Frame -->
+            <div class="ios-calc-wrapper" dir="ltr"> <!-- FORCE LTR FOR CORRECT LAYOUT -->
                 <div class="ios-calc-container">
                     <div class="calc-display-area">
                         <input type="text" id="calc-display" readonly value="0">
                     </div>
                     <div class="ios-keys">
+                        <!-- Row 1 -->
                         <button class="btn-grey" onclick="clearCalc()">AC</button>
                         <button class="btn-grey" onclick="toggleSign()">+/-</button>
                         <button class="btn-grey" onclick="percent()">%</button>
                         <button class="btn-orange" onclick="chooseOp('/')">÷</button>
 
+                        <!-- Row 2 -->
                         <button class="btn-dark" onclick="appendCalc('7')">7</button>
                         <button class="btn-dark" onclick="appendCalc('8')">8</button>
                         <button class="btn-dark" onclick="appendCalc('9')">9</button>
                         <button class="btn-orange" onclick="chooseOp('*')">×</button>
 
+                        <!-- Row 3 -->
                         <button class="btn-dark" onclick="appendCalc('4')">4</button>
                         <button class="btn-dark" onclick="appendCalc('5')">5</button>
                         <button class="btn-dark" onclick="appendCalc('6')">6</button>
                         <button class="btn-orange" onclick="chooseOp('-')">-</button>
 
+                        <!-- Row 4 -->
                         <button class="btn-dark" onclick="appendCalc('1')">1</button>
                         <button class="btn-dark" onclick="appendCalc('2')">2</button>
                         <button class="btn-dark" onclick="appendCalc('3')">3</button>
                         <button class="btn-orange" onclick="chooseOp('+')">+</button>
 
+                        <!-- Row 5 -->
                         <button class="btn-dark span-2" onclick="appendCalc('0')">0</button>
                         <button class="btn-dark" onclick="appendCalc('.')">.</button>
                         <button class="btn-orange" onclick="calculate()">=</button>
