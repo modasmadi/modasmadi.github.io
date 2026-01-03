@@ -22,13 +22,13 @@ const CONFIG = {
 
     // Firebase Config
     FIREBASE: {
-        apiKey: "AIzaSyAGVLu3L7hdDnJe4pD5vNhkXU_7SIfIS9w",
+        apiKey: "AIzaSyAGVLu3l7hdOnJe4pD5VNhkXU_7SIFIS9w",
         authDomain: "mind-ai-8f711.firebaseapp.com",
         projectId: "mind-ai-8f711",
         storageBucket: "mind-ai-8f711.firebasestorage.app",
-        messagingSenderId: "236650503076",
-        appId: "1:236650503076:web:619f207c1740ac19d07391",
-        measurementId: "G-S7HXGZONG0"
+        messagingSenderId: "236650503876",
+        appId: "1:236650503876:web:019f207c1740ac19d07391",
+        measurementId: "G-S7HXGZQNG0"
     }
 };
 
