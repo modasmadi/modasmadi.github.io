@@ -348,8 +348,11 @@ function setupEventListeners() {
 
     const inputWrapper = document.querySelector('.input-wrapper');
     if (inputWrapper) {
-        const textarea = inputWrapper.querySelector('textarea');
-        inputWrapper.insertBefore(voiceBtn, textarea);
+        // Prevent duplicate buttons
+        if (!inputWrapper.querySelector('.voice-btn')) {
+            const textarea = inputWrapper.querySelector('textarea');
+            inputWrapper.insertBefore(voiceBtn, textarea);
+        }
     }
 
     // Error dismiss button
