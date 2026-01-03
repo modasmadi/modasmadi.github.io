@@ -1291,10 +1291,10 @@ async function sendToGroq(chatMessages, currentMessage) {
 
 // Update sendToGroqVision to support URLs
 async function sendToGroqVision(text, imageInput) {
-    // Groq Vision models
+    // Groq Vision models (Updated)
     const VISION_MODELS = [
-        'meta-llama/llama-3.2-90b-vision-preview',
-        'llama-3.2-90b-vision-preview'
+        'llama-3.2-11b-vision-preview',
+        'llama-3.2-90b-vision-instruct'
     ];
 
     let lastError = null;
