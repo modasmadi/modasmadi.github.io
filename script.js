@@ -1118,20 +1118,13 @@ async function sendMessage() {
         };
 
         if (state.currentFile.type === 'image') {
-            // Check if we should upload to storage (Phase 9)
+            // REVERT: Cloud Storage caused issues. Using direct Base64 for reliability.
+            /* 
             if (storage && currentUser) {
-                try {
-                    showSuccess('جاري رفع الصورة للسحابة...');
-                    const url = await uploadToStorage(state.currentFile.file);
-                    userMessage.image = url; // Use URL instead of Base64
-                    userMessage.isCloud = true;
-                } catch (e) {
-                    console.error("Upload failed, falling back", e);
-                    userMessage.image = state.currentFile.dataUrl;
-                }
-            } else {
-                userMessage.image = state.currentFile.dataUrl;
-            }
+                try { ... } ...
+            } 
+            */
+            userMessage.image = state.currentFile.dataUrl;
         }
     }
 
