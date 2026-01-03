@@ -1161,7 +1161,9 @@ async function sendMessage() {
             // Use Groq Vision for images
             // If we have a URL (from cloud), use it. Else use dataUrl.
             const imageUrl = userMessage.image; // Already set above
-            response = await sendToGroqVision(text || 'حلل هذه الصورة بالتفصيل', imageUrl);
+            // Pass base64 as fallback for Gemini
+            const fallbackBase64 = state.currentFile.dataUrl;
+            response = await sendToGroqVision(text || 'حلل هذه الصورة بالتفصيل', imageUrl, fallbackBase64);
         } else {
             // Use Groq for text
             const messageForAI = state.currentFile && state.currentFile.data
@@ -1290,8 +1292,9 @@ async function sendToGroq(chatMessages, currentMessage) {
 }
 
 // Update sendToGroqVision to support URLs
-async function sendToGroqVision(text, imageInput) {
+async function sendToGroqVision(text, imageInput, fallbackBase64 = null) {
     // Groq Vision models (Active 2025)
+    // If these are decommissioned, the logic will fallback to Gemini using fallbackBase64
     const VISION_MODELS = [
         'llama-3.2-90b-vision-preview',
         'llama-3.2-11b-vision-preview'
@@ -1357,19 +1360,27 @@ async function sendToGroqVision(text, imageInput) {
     // Fallback to Gemini if Groq Vision fails
     console.log('🔄 Trying Gemini as fallback...');
     try {
-        // Prepare image for Gemini (needs raw base64 if not URL)
-        let geminiImage = imageInput;
-        if (!isUrl && imageInput.includes(',')) {
-            geminiImage = imageInput.split(',')[1];
-        } else if (isUrl) {
-            // Gemini supports image URL? Not directly in this implementation usually
-            // We might skip fallback or handle URL differently.
-            // For now, let's just pass empty if URL, or try.
-            // Actually sendToGemini expects base64 usually.
-            console.warn("Gemini fallback might fail with URL input");
+        // Use fallbackBase64 if available (Critical for Cloud Image URLs)
+        let geminiImage = fallbackBase64 || imageInput;
+
+        // If still a URL and no fallback, we can't use Gemini easily
+        if (typeof geminiImage === 'string' && geminiImage.startsWith('http') && !geminiImage.includes('data:image')) {
+            throw new Error("Could not use Gemini fallback with URL: " + geminiImage);
         }
 
-        return await sendToGemini(text, geminiImage);
+        // Ensure it's not the full data URL, just the base64 part
+        if (typeof geminiImage === 'string' && geminiImage.includes(',')) {
+            geminiImage = geminiImage.split(',')[1]; // Just the base64
+        }
+
+        // Use sendToGeminiFallback directly which expects FULL Data URL or Base64? 
+        // Let's check sendToGeminiFallback implementation below. 
+        // It says: const base64Data = imageDataUrl.split(',')[1];
+        // So it expects a Full Data URL.
+        // So we should reconstruct it if we only have base64, or pass the full fallbackBase64.
+
+        return await sendToGeminiFallback(text, fallbackBase64 || imageInput);
+
     } catch (geminiError) {
         console.log('❌ Gemini fallback also failed:', geminiError.message);
         throw new Error(lastError?.message || 'فشل تحليل الصورة. جرب لاحقاً.');
